@@ -1,0 +1,15 @@
+[gd_scene load_steps=3 format=3 uid="uid://pafaeb2iofnb"]
+
+[ext_resource type="Texture2D" uid="uid://cpbw72d13ve72" path="res://icon.svg" id="1_15mgl"]
+[ext_resource type="PackedScene" uid="uid://bfde3vpnmspyc" path="res://Scenes/FunctionVisualizer/FunctionVisualizer2D.tscn" id="2_q8jxn"]
+
+[node name="Root" type="Node2D"]
+
+[node name="Camera2D" type="Camera2D" parent="."]
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+texture = ExtResource("1_15mgl")
+
+[node name="CanvasLayer" type="CanvasLayer" parent="."]
+
+[node name="FunctionVisualizer2d" parent="CanvasLayer" instance=ExtResource("2_q8jxn")]

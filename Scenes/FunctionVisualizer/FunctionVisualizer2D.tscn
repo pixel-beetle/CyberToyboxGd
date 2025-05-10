@@ -1,0 +1,49 @@
+[gd_scene load_steps=3 format=3 uid="uid://bfde3vpnmspyc"]
+
+[ext_resource type="Material" uid="uid://xjq4pcynnlhb" path="res://Scripts/FunctionVisualizer/new_shader_material.material" id="1_ig1e0"]
+
+[sub_resource type="CanvasTexture" id="CanvasTexture_ig1e0"]
+
+[node name="FunctionVisualizer2d" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Background" type="Panel" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="FunctionCodeInput" type="TextEdit" parent="Background"]
+layout_mode = 1
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -309.0
+offset_top = -68.0
+offset_right = 309.0
+offset_bottom = -26.0
+grow_horizontal = 2
+grow_vertical = 0
+
+[node name="TextureRect" type="TextureRect" parent="Background"]
+material = ExtResource("1_ig1e0")
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 150.0
+offset_top = 118.0
+offset_right = -1025.0
+offset_bottom = -201.0
+grow_horizontal = 2
+grow_vertical = 2
+texture = SubResource("CanvasTexture_ig1e0")
