@@ -1,0 +1,43 @@
+[gd_scene format=3 uid="uid://ct4rmrtcgc8lc"]
+
+[node name="FunctionInput" type="Control"]
+custom_minimum_size = Vector2(0, 30)
+layout_mode = 3
+anchors_preset = 10
+anchor_right = 1.0
+grow_horizontal = 2
+
+[node name="HBoxContainer" type="HBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="ColorPickerButton" type="ColorPickerButton" parent="HBoxContainer"]
+custom_minimum_size = Vector2(30, 30)
+layout_mode = 2
+size_flags_horizontal = 0
+color = Color(0.644473, 0.621459, 1, 1)
+
+[node name="RichTextLabel" type="RichTextLabel" parent="HBoxContainer"]
+custom_minimum_size = Vector2(90, 0)
+layout_mode = 2
+theme_override_font_sizes/bold_italics_font_size = 18
+theme_override_font_sizes/italics_font_size = 18
+theme_override_font_sizes/mono_font_size = 18
+theme_override_font_sizes/normal_font_size = 18
+theme_override_font_sizes/bold_font_size = 18
+text = "f(x, t)"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="TextEdit" type="TextEdit" parent="HBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Button" type="Button" parent="HBoxContainer"]
+custom_minimum_size = Vector2(30, 0)
+layout_mode = 2
+text = "+"
