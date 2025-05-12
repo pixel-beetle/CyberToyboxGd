@@ -1,4 +1,7 @@
-[gd_scene format=3 uid="uid://ct4rmrtcgc8lc"]
+[gd_scene load_steps=3 format=3 uid="uid://ct4rmrtcgc8lc"]
+
+[ext_resource type="CodeHighlighter" uid="uid://c6afq5wnc6tjd" path="res://UITheme/FunctionInputHighlighter_Dark.tres" id="1_ahr3o"]
+[ext_resource type="Script" uid="uid://cuerbvlgvphvn" path="res://Scripts/FunctionVisualizer/FunctionInputEdit.gd" id="1_v2tsw"]
 
 [node name="FunctionInput" type="Control"]
 custom_minimum_size = Vector2(0, 30)
@@ -6,8 +9,10 @@ layout_mode = 3
 anchors_preset = 10
 anchor_right = 1.0
 grow_horizontal = 2
+script = ExtResource("1_v2tsw")
+SyntaxHighligherResourceTemplate = ExtResource("1_ahr3o")
 
-[node name="HBoxContainer" type="HBoxContainer" parent="."]
+[node name="HBox" type="HBoxContainer" parent="."]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -15,13 +20,13 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 
-[node name="ColorPickerButton" type="ColorPickerButton" parent="HBoxContainer"]
+[node name="ColorPickerButton" type="ColorPickerButton" parent="HBox"]
 custom_minimum_size = Vector2(30, 30)
 layout_mode = 2
 size_flags_horizontal = 0
 color = Color(0.644473, 0.621459, 1, 1)
 
-[node name="RichTextLabel" type="RichTextLabel" parent="HBoxContainer"]
+[node name="RichTextLabel" type="RichTextLabel" parent="HBox"]
 custom_minimum_size = Vector2(90, 0)
 layout_mode = 2
 theme_override_font_sizes/bold_italics_font_size = 18
@@ -33,11 +38,15 @@ text = "f(x, t)"
 horizontal_alignment = 1
 vertical_alignment = 1
 
-[node name="TextEdit" type="TextEdit" parent="HBoxContainer"]
+[node name="CodeEdit" type="CodeEdit" parent="HBox"]
 layout_mode = 2
 size_flags_horizontal = 3
+syntax_highlighter = ExtResource("1_ahr3o")
+highlight_all_occurrences = true
+auto_brace_completion_enabled = true
+auto_brace_completion_highlight_matching = true
 
-[node name="Button" type="Button" parent="HBoxContainer"]
+[node name="Button" type="Button" parent="HBox"]
 custom_minimum_size = Vector2(30, 0)
 layout_mode = 2
 text = "+"

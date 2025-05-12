@@ -1,11 +1,30 @@
 shader_type canvas_item;
 
+varying flat mat4 _WorldToScreenMatrix; 
+
 vec2 UVToFuncSpaceCoord(vec2 uv)
 {
 	vec2 boundsMin = vec2(-2);
 	vec2 boundsMax = vec2(2);
 	
 	return mix(boundsMin, boundsMax, uv);
+}
+
+vec2 FuncSpaceCoordToUV(vec2 coord)
+{
+	vec2 boundsMin = vec2(-2);
+	vec2 boundsMax = vec2(2);
+	
+	return (coord - boundsMin) / (boundsMax - boundsMin);
+}
+
+vec2 FuncSpaceCoordToScreenUV(vec2 coord)
+{
+	vec2 uv = FuncSpaceCoordToUV(coord);
+	vec2 boundsMin = vec2(-2);
+	vec2 boundsMax = vec2(2);
+	
+	return (coord - boundsMin) / (boundsMax - boundsMin);
 }
 
 float f1(float x)
@@ -63,11 +82,11 @@ DECLARE_FUNC_ApplyFunctionGraph(4)
 DECLARE_FUNC_ApplyFunctionGraph(5)
 DECLARE_FUNC_ApplyFunctionGraph(6)
 
-varying flat mat4 _LocalToScreenMatrix; 
+
 
 void vertex()
 {
-	_LocalToScreenMatrix = SCREEN_MATRIX * CANVAS_MATRIX * MODEL_MATRIX;
+	_WorldToScreenMatrix = SCREEN_MATRIX * CANVAS_MATRIX;
 }
 
 vec4 ApplyGridLines(vec4 inColor, vec4 gridColor, vec2 coord, float gridSize, float gridLinePixelWidth)
@@ -89,7 +108,7 @@ vec4 ApplyGridLines(vec4 inColor, vec4 gridColor, vec2 coord, float gridSize, fl
 }
 
 void fragment() 
-{
+{	
 	vec4 backgroundColor = vec4(0.16, 0.16, 0.16, 1);
 	vec2 uv = UV;
 	uv.y = 1.0f - uv.y;
@@ -109,4 +128,9 @@ void fragment()
 	finalColor = ApplyFunctionGraph_6(finalColor, vec4(0,0,1,1), coord);
 	finalColor.a = 1.0f;
 	COLOR = finalColor;
+	
+	//vec3 clipPos = (_WorldToScreenMatrix * vec4(VERTEX, 0,1)).xyz;
+	//clipPos = vec3(clipPos.xy * 0.5 + 0.5, 0);
+	//clipPos.y = 1.0f - clipPos.y;
+	//COLOR = vec4(clipPos, 1);
 }
