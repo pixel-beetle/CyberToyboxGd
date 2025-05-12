@@ -7,7 +7,6 @@ var m_DynamicShader : Shader;
 @export var FunctionCoordBoundsMin : Vector2 = Vector2(-2, -2);
 @export var FunctionCoordBoundsMax : Vector2 = Vector2(2, 2);
 
-@export var FunctionCoordOffset : Vector2 = Vector2(0, 0);
 
 @export var DisplayItem : FunctionVisualizer2DDisplayCanvas
 
@@ -15,6 +14,7 @@ var m_DynamicShader : Shader;
 var m_RenderMaterial : ShaderMaterial;
 var m_Time : float = 0.0;
 
+var m_FunctionCoordOffset : Vector2 = Vector2(0, 0);
 var m_FunctionInputEdits : Array[FunctionInputEdit] = [];
 
 func GetCurrentTime() -> float:
@@ -39,9 +39,15 @@ func _ready() -> void:
 func _on_FunctionInputEdit_text_changed(index :int, content : String) -> void:
 	print("FunctionInputEdit_text_changed: ", index, content)
 
-func _on_drag_moved(delta: Vector2) -> void:
-	FunctionCoordOffset.x += delta.x;
-	FunctionCoordOffset.y -= delta.y;
+func _on_drag_moved(canvasDelta: Vector2) -> void:
+	var funcCoordDelta := canvasDelta;
+	funcCoordDelta.y = -funcCoordDelta.y;
+	
+	var canvasSize := DisplayItem.size;
+	var factor := (FunctionCoordBoundsMax - FunctionCoordBoundsMin) / canvasSize;
+	funcCoordDelta *= factor;
+	
+	m_FunctionCoordOffset -= funcCoordDelta;
 
 func InitializeIfNeeded() -> void:
 	if not m_DynamicShader:
@@ -71,12 +77,15 @@ func UpdateMaterialProperties() -> void:
 		
 	m_RenderMaterial.set_shader_parameter("_Time", m_Time);
 	var funcCoordBounds := Vector4(FunctionCoordBoundsMin.x, FunctionCoordBoundsMin.y, FunctionCoordBoundsMax.x, FunctionCoordBoundsMax.y)
-	funcCoordBounds.x += FunctionCoordOffset.x;
-	funcCoordBounds.y += FunctionCoordOffset.y;
-	funcCoordBounds.z += FunctionCoordOffset.x;
-	funcCoordBounds.w += FunctionCoordOffset.y;
+	funcCoordBounds.x += m_FunctionCoordOffset.x;
+	funcCoordBounds.y += m_FunctionCoordOffset.y;
+	funcCoordBounds.z += m_FunctionCoordOffset.x;
+	funcCoordBounds.w += m_FunctionCoordOffset.y;
 	m_RenderMaterial.set_shader_parameter("_FunctionCoordBoundsMinMax", funcCoordBounds);
-	
+	for input in m_FunctionInputEdits:
+		m_RenderMaterial.set_shader_parameter("_Color" + str(input.Index), input.m_ColorPickerButton.color);
+
+
 # Called every frame. 'delta' is the elapsed time since the previous frame.
 func _process(delta: float) -> void:
 	m_Time += delta;
@@ -96,6 +105,13 @@ shader_type canvas_item;
 uniform float _Time;
 uniform vec4 _FunctionCoordBoundsMinMax;
 varying flat mat4 _WorldToScreenMatrix; 
+
+uniform vec4 _Color1;
+uniform vec4 _Color2;
+uniform vec4 _Color3;
+uniform vec4 _Color4;
+uniform vec4 _Color5;
+uniform vec4 _Color6;
 
 vec2 UVToFuncSpaceCoord(vec2 uv)
 {
@@ -215,12 +231,12 @@ void fragment()
 	
 	finalColor = ApplyGridLines(finalColor, vec4(0.25, 0.25, 0.25, 1), coord, 0.1, 1);
 	finalColor = ApplyGridLines(finalColor, vec4(0.45, 0.45, 0.45, 1), coord, 0.5, 1.5);
-	finalColor = ApplyFunctionGraph_1(finalColor, vec4(1,0,0,1), coord);
-	finalColor = ApplyFunctionGraph_2(finalColor, vec4(1,1,0,1), coord);
-	finalColor = ApplyFunctionGraph_3(finalColor, vec4(1,1,1,1), coord);
-	finalColor = ApplyFunctionGraph_4(finalColor, vec4(0,1,0,1), coord);
-	finalColor = ApplyFunctionGraph_5(finalColor, vec4(0,1,1,1), coord);
-	finalColor = ApplyFunctionGraph_6(finalColor, vec4(0,0,1,1), coord);
+	finalColor = ApplyFunctionGraph_1(finalColor, _Color1, coord);
+	finalColor = ApplyFunctionGraph_2(finalColor, _Color2, coord);
+	finalColor = ApplyFunctionGraph_3(finalColor, _Color3, coord);
+	finalColor = ApplyFunctionGraph_4(finalColor, _Color4, coord);
+	finalColor = ApplyFunctionGraph_5(finalColor, _Color5, coord);
+	finalColor = ApplyFunctionGraph_6(finalColor, _Color6, coord);
 	finalColor.a = 1.0f;
 	COLOR = finalColor;
 }
