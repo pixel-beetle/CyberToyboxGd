@@ -84,7 +84,12 @@ func UpdateMaterialProperties() -> void:
 	m_RenderMaterial.set_shader_parameter("_FunctionCoordBoundsMinMax", funcCoordBounds);
 	for input in m_FunctionInputEdits:
 		m_RenderMaterial.set_shader_parameter("_Color" + str(input.Index), input.m_ColorPickerButton.color);
-
+	var posSize := Vector4()
+	posSize.x = DisplayItem.global_position.x;
+	posSize.y = DisplayItem.global_position.y;
+	posSize.z = DisplayItem.size.x;
+	posSize.w = DisplayItem.size.y;
+	m_RenderMaterial.set_shader_parameter("_CanvasItemPositionSize", posSize);
 
 # Called every frame. 'delta' is the elapsed time since the previous frame.
 func _process(delta: float) -> void:
@@ -99,11 +104,12 @@ func _exit_tree() -> void:
 	ReleaseResourcesIfNeeded();
 	queue_free();
 
-const SHADER_CODE_TEMPLATE = """
+const SHADER_CODE_TEMPLATE : String = """
 shader_type canvas_item;
 
 uniform float _Time;
 uniform vec4 _FunctionCoordBoundsMinMax;
+uniform vec4 _CanvasItemPositionSize;
 varying flat mat4 _WorldToScreenMatrix; 
 
 uniform vec4 _Color1;
@@ -132,10 +138,22 @@ vec2 FuncSpaceCoordToUV(vec2 coord)
 vec2 FuncSpaceCoordToScreenUV(vec2 coord)
 {
 	vec2 uv = FuncSpaceCoordToUV(coord);
-	vec2 boundsMin = _FunctionCoordBoundsMinMax.xy;
-	vec2 boundsMax = _FunctionCoordBoundsMinMax.zw;
+	vec2 uv_TopIs0 = uv;
+	uv_TopIs0.y = 1.0 - uv_TopIs0.y;
 	
-	return (coord - boundsMin) / (boundsMax - boundsMin);
+	vec2 worldPosLeftTop = _CanvasItemPositionSize.xy;
+	vec2 worldSize = _CanvasItemPositionSize.zw;
+	vec2 worldPos = worldPosLeftTop + worldSize * uv_TopIs0;
+	
+	vec4 clipPos = _WorldToScreenMatrix * vec4(worldPos, 0, 1);
+	vec2 screenUV = clipPos.xy * 0.5f + 0.5f;
+	return screenUV;
+}
+
+vec2 FuncSpaceCoordToScreenPos(vec2 coord, vec2 screenSize)
+{
+	vec2 screenUV = FuncSpaceCoordToScreenUV(coord);
+	return screenUV * screenSize;
 }
 
 float f1(float x)
@@ -177,7 +195,7 @@ float GetLerpFactor(vec2 coord, float funcY, float funcSlope)
 }
 
 #define DECLARE_FUNC_ApplyFunctionGraph(index) vec4 ApplyFunctionGraph_##index(vec4 inColor, vec4 funcGraphColor, vec2 coord) { \
-	float epsilon = 0.0001f; \
+	float epsilon = 0.000001f; \
 	float funcValue 	 = f##index(coord.x); \
 	float funcValueLeft  = f##index(coord.x - epsilon); \
 	float funcValueRight = f##index(coord.x + epsilon); \
@@ -200,22 +218,39 @@ void vertex()
 	_WorldToScreenMatrix = SCREEN_MATRIX * CANVAS_MATRIX;
 }
 
-vec4 ApplyGridLines(vec4 inColor, vec4 gridColor, vec2 coord, float gridSize, float gridLinePixelWidth)
+vec4 ApplyGridLines(vec4 inColor, vec4 gridColor, vec2 coord, vec2 screenSize, float gridSize, float gridLinePixelWidth)
 {
 	vec2 gridSize2D = vec2(gridSize, gridSize);
 	vec2 gridId = floor(coord / gridSize2D);
 	vec2 gridMin = gridId * gridSize2D;
-	vec2 gridMax = gridMin + gridSize2D;
 	
-	float pixelToFuncCoordFactor = dFdx(coord.x);
-	float halfGridLineWidth = gridLinePixelWidth * 0.5f * pixelToFuncCoordFactor;
+	float halfGridLineWidth = gridLinePixelWidth * 0.5f;
 
-	bool isLine = (abs(coord.x - gridMin.x) < halfGridLineWidth) 
-					|| (abs(coord.x - gridMax.x) < halfGridLineWidth)
-					|| (abs(coord.y - gridMin.y) < halfGridLineWidth)
-					|| (abs(coord.y - gridMax.y) < halfGridLineWidth);
+	bool isLine = (abs(coord.x - gridMin.x) < halfGridLineWidth * dFdx(coord.x)) 
+					|| (abs(coord.y - gridMin.y) < halfGridLineWidth * dFdx(coord.x));
+					
 	float factor = isLine ? 1.0 : 0.0;
 	return mix(inColor, gridColor, factor);
+}
+
+vec4 ApplyHorizontalLine(vec4 inColor, vec4 lineColor, vec2 coord, float Y, float linePixelWidth)
+{
+	float halfLineWidth = linePixelWidth * 0.5f;
+
+	bool isLine = (abs(coord.y - Y) < halfLineWidth * dFdx(coord.x));
+	
+	float factor = isLine ? 1.0 : 0.0;
+	return mix(inColor, lineColor, factor);
+}
+
+vec4 ApplyVerticalLine(vec4 inColor, vec4 lineColor, vec2 coord, float X, float linePixelWidth)
+{
+	float halfLineWidth = linePixelWidth * 0.5f;
+
+	bool isLine = (abs(coord.x - X) < halfLineWidth * dFdx(coord.x));
+	
+	float factor = isLine ? 1.0 : 0.0;
+	return mix(inColor, lineColor, factor);
 }
 
 void fragment() 
@@ -228,9 +263,12 @@ void fragment()
 	
 	vec4 finalColor = backgroundColor;
 	
+	vec2 screenSize = 1.0f / SCREEN_PIXEL_SIZE;
 	
-	finalColor = ApplyGridLines(finalColor, vec4(0.25, 0.25, 0.25, 1), coord, 0.1, 1);
-	finalColor = ApplyGridLines(finalColor, vec4(0.45, 0.45, 0.45, 1), coord, 0.5, 1.5);
+	finalColor = ApplyGridLines(finalColor, vec4(0.25, 0.25, 0.25, 1), coord, screenSize, 0.1, 2);
+	finalColor = ApplyGridLines(finalColor, vec4(0.45, 0.45, 0.45, 1), coord, screenSize, 0.5, 4);
+	finalColor = ApplyHorizontalLine(finalColor, vec4(0.55, 0.55, 0.55, 1), coord, 0.0, 6);
+	finalColor = ApplyVerticalLine(finalColor, vec4(0.55, 0.55, 0.55, 1), coord, 0.0, 6);
 	finalColor = ApplyFunctionGraph_1(finalColor, _Color1, coord);
 	finalColor = ApplyFunctionGraph_2(finalColor, _Color2, coord);
 	finalColor = ApplyFunctionGraph_3(finalColor, _Color3, coord);

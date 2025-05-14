@@ -1,4 +1,4 @@
-[gd_scene load_steps=10 format=3 uid="uid://bfde3vpnmspyc"]
+[gd_scene load_steps=8 format=3 uid="uid://bfde3vpnmspyc"]
 
 [ext_resource type="Script" uid="uid://b44qcq5mv7118" path="res://Scripts/FunctionVisualizer/FunctionVisualizer2D.gd" id="1_3wf0p"]
 [ext_resource type="Material" uid="uid://xjq4pcynnlhb" path="res://Scripts/FunctionVisualizer/new_shader_material.material" id="1_ig1e0"]
@@ -29,23 +29,6 @@ corner_radius_bottom_right = 3
 corner_radius_bottom_left = 3
 corner_detail = 5
 
-[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_w6rve"]
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_3wf0p"]
-content_margin_left = 0.0
-content_margin_top = 0.0
-content_margin_right = 0.0
-content_margin_bottom = 0.0
-bg_color = Color(0.252028, 0.252028, 0.252028, 1)
-corner_radius_top_left = 10
-corner_radius_top_right = 10
-corner_radius_bottom_right = 10
-corner_radius_bottom_left = 10
-corner_detail = 5
-shadow_color = Color(0, 0, 0, 0.298039)
-shadow_size = 5
-shadow_offset = Vector2(3, 3)
-
 [sub_resource type="CanvasTexture" id="CanvasTexture_ig1e0"]
 
 [node name="FunctionVisualizer2d" type="Control" node_paths=PackedStringArray("DisplayItem")]
@@ -55,8 +38,12 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
 script = ExtResource("1_3wf0p")
-DisplayItem = NodePath("Background/Body/VisualizerPanel/VisualizerBox/VisualizeDisplay")
+FunctionCoordBoundsMin = Vector2(-3.2, -1.8)
+FunctionCoordBoundsMax = Vector2(3.2, 1.8)
+DisplayItem = NodePath("Background/VBoxContainer/Body2/VisualizeDisplay")
 
 [node name="Background" type="Panel" parent="."]
 layout_mode = 1
@@ -68,16 +55,7 @@ grow_vertical = 2
 scale = Vector2(1.00039, 1)
 theme_override_styles/panel = SubResource("StyleBoxFlat_w6rve")
 
-[node name="Header" type="Panel" parent="Background"]
-custom_minimum_size = Vector2(0, 100)
-layout_mode = 1
-anchors_preset = 10
-anchor_right = 1.0
-grow_horizontal = 2
-theme_override_styles/panel = SubResource("StyleBoxFlat_wjtke")
-
-[node name="VBox" type="VBoxContainer" parent="Background/Header"]
-custom_minimum_size = Vector2(0, 100)
+[node name="VBoxContainer" type="VBoxContainer" parent="Background"]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -85,179 +63,186 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 
-[node name="TitleBox" type="HBoxContainer" parent="Background/Header/VBox"]
+[node name="Header" type="Panel" parent="Background/VBoxContainer"]
+custom_minimum_size = Vector2(0, 60)
+layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_wjtke")
+
+[node name="VBox" type="VBoxContainer" parent="Background/VBoxContainer/Header"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="TitleBox" type="HBoxContainer" parent="Background/VBoxContainer/Header/VBox"]
 layout_mode = 2
 size_flags_vertical = 3
 alignment = 1
 
-[node name="SPACE" type="Control" parent="Background/Header/VBox/TitleBox"]
-custom_minimum_size = Vector2(150, 0)
-layout_mode = 2
-
-[node name="TitleLabel" type="RichTextLabel" parent="Background/Header/VBox/TitleBox"]
+[node name="Label" type="Label" parent="Background/VBoxContainer/Header/VBox/TitleBox"]
 layout_mode = 2
 size_flags_horizontal = 3
-focus_mode = 2
-theme_override_font_sizes/bold_italics_font_size = 75
-theme_override_font_sizes/italics_font_size = 75
-theme_override_font_sizes/mono_font_size = 75
-theme_override_font_sizes/normal_font_size = 75
-theme_override_font_sizes/bold_font_size = 75
-theme_override_styles/focus = SubResource("StyleBoxEmpty_w6rve")
-bbcode_enabled = true
-text = "[font_size=50]Func Viewer[/font_size]  [font_size=35]v0.1 by Pixel Beetle[/font_size]"
-scroll_active = false
-shortcut_keys_enabled = false
+size_flags_vertical = 1
+theme_override_font_sizes/font_size = 35
+text = "Function Toy"
+horizontal_alignment = 1
 vertical_alignment = 1
-selection_enabled = true
-deselect_on_focus_loss_enabled = false
-drag_and_drop_selection_enabled = false
 
-[node name="HSeparator" type="HSeparator" parent="Background/Header/VBox"]
+[node name="Body2" type="Panel" parent="Background/VBoxContainer"]
 layout_mode = 2
-theme_override_constants/separation = 8
+size_flags_vertical = 3
 
-[node name="Body" type="HBoxContainer" parent="Background"]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-offset_top = 100.0
-grow_horizontal = 2
-grow_vertical = 2
-theme_override_constants/separation = 60
-alignment = 1
-
-[node name="VisualizerPanel" type="Panel" parent="Background/Body"]
-custom_minimum_size = Vector2(800, 850)
-layout_mode = 2
-size_flags_vertical = 4
-theme_override_styles/panel = SubResource("StyleBoxFlat_3wf0p")
-
-[node name="VisualizerBox" type="VBoxContainer" parent="Background/Body/VisualizerPanel"]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-theme_override_constants/separation = 8
-
-[node name="TopButtons" type="HBoxContainer" parent="Background/Body/VisualizerPanel/VisualizerBox"]
-custom_minimum_size = Vector2(0, 50)
-layout_mode = 2
-theme_override_constants/separation = 12
-alignment = 1
-
-[node name="Button" type="Button" parent="Background/Body/VisualizerPanel/VisualizerBox/TopButtons"]
-layout_mode = 2
-
-[node name="Button2" type="Button" parent="Background/Body/VisualizerPanel/VisualizerBox/TopButtons"]
-layout_mode = 2
-
-[node name="VisualizeDisplay" type="TextureRect" parent="Background/Body/VisualizerPanel/VisualizerBox"]
+[node name="VisualizeDisplay" type="TextureRect" parent="Background/VBoxContainer/Body2"]
 material = ExtResource("1_ig1e0")
-custom_minimum_size = Vector2(750, 750)
-layout_mode = 2
-size_flags_horizontal = 4
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+size_flags_vertical = 3
 texture = SubResource("CanvasTexture_ig1e0")
 script = ExtResource("3_wjtke")
 metadata/_edit_group_ = true
 
-[node name="VSeparator" type="VSeparator" parent="Background/Body"]
+[node name="FoldableContainer" type="FoldableContainer" parent="Background/VBoxContainer/Body2"]
+clip_contents = true
+layout_mode = 1
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -744.708
+offset_top = 32.0
+offset_right = -36.708
+offset_bottom = 463.0
+grow_horizontal = 0
+mouse_filter = 1
+text = "Functions"
+metadata/_edit_group_ = true
+
+[node name="Functions" type="VSplitContainer" parent="Background/VBoxContainer/Body2/FoldableContainer"]
+custom_minimum_size = Vector2(700, 0)
+layout_mode = 2
+theme_override_constants/separation = 24
+
+[node name="PanelContainer" type="PanelContainer" parent="Background/VBoxContainer/Body2/FoldableContainer/Functions"]
+clip_contents = true
 layout_mode = 2
 
-[node name="FunctionInputBox" type="VBoxContainer" parent="Background/Body"]
-custom_minimum_size = Vector2(700, 850)
+[node name="VBox" type="VBoxContainer" parent="Background/VBoxContainer/Body2/FoldableContainer/Functions/PanelContainer"]
 layout_mode = 2
-size_flags_vertical = 4
-theme_override_constants/separation = 8
 
-[node name="Panel" type="Panel" parent="Background/Body/FunctionInputBox"]
+[node name="TopButtons" type="HBoxContainer" parent="Background/VBoxContainer/Body2/FoldableContainer/Functions/PanelContainer/VBox"]
+custom_minimum_size = Vector2(0, 40)
+layout_mode = 2
+theme_override_constants/separation = 4
+alignment = 2
+
+[node name="Button" type="Button" parent="Background/VBoxContainer/Body2/FoldableContainer/Functions/PanelContainer/VBox/TopButtons"]
+custom_minimum_size = Vector2(50, 0)
+layout_mode = 2
+text = "？"
+
+[node name="Button2" type="Button" parent="Background/VBoxContainer/Body2/FoldableContainer/Functions/PanelContainer/VBox/TopButtons"]
+custom_minimum_size = Vector2(50, 0)
+layout_mode = 2
+text = "+"
+
+[node name="ScrollContainer" type="ScrollContainer" parent="Background/VBoxContainer/Body2/FoldableContainer/Functions/PanelContainer/VBox"]
+clip_contents = false
+custom_minimum_size = Vector2(0, 250)
 layout_mode = 2
 size_flags_vertical = 3
-theme_override_styles/panel = SubResource("StyleBoxFlat_3wf0p")
+horizontal_scroll_mode = 0
 
-[node name="VBox" type="VBoxContainer" parent="Background/Body/FunctionInputBox/Panel"]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-
-[node name="TopButtons" type="HBoxContainer" parent="Background/Body/FunctionInputBox/Panel/VBox"]
-custom_minimum_size = Vector2(0, 50)
+[node name="MarginContainer" type="MarginContainer" parent="Background/VBoxContainer/Body2/FoldableContainer/Functions/PanelContainer/VBox/ScrollContainer"]
 layout_mode = 2
-theme_override_constants/separation = 12
-alignment = 1
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/margin_left = 40
+theme_override_constants/margin_right = 40
+theme_override_constants/margin_bottom = 0
 
-[node name="Button" type="Button" parent="Background/Body/FunctionInputBox/Panel/VBox/TopButtons"]
-layout_mode = 2
-
-[node name="Button2" type="Button" parent="Background/Body/FunctionInputBox/Panel/VBox/TopButtons"]
-layout_mode = 2
-
-[node name="FunctionTextInputs" type="VBoxContainer" parent="Background/Body/FunctionInputBox/Panel/VBox"]
+[node name="FunctionTextInputs" type="VBoxContainer" parent="Background/VBoxContainer/Body2/FoldableContainer/Functions/PanelContainer/VBox/ScrollContainer/MarginContainer"]
 custom_minimum_size = Vector2(600, 0)
 layout_mode = 2
-size_flags_horizontal = 4
+size_flags_horizontal = 3
+size_flags_vertical = 3
 
-[node name="FunctionInput" parent="Background/Body/FunctionInputBox/Panel/VBox/FunctionTextInputs" instance=ExtResource("2_w6rve")]
+[node name="FunctionInput" parent="Background/VBoxContainer/Body2/FoldableContainer/Functions/PanelContainer/VBox/ScrollContainer/MarginContainer/FunctionTextInputs" instance=ExtResource("2_w6rve")]
 layout_mode = 2
 Index = 1
 
-[node name="FunctionInput2" parent="Background/Body/FunctionInputBox/Panel/VBox/FunctionTextInputs" instance=ExtResource("2_w6rve")]
+[node name="FunctionInput2" parent="Background/VBoxContainer/Body2/FoldableContainer/Functions/PanelContainer/VBox/ScrollContainer/MarginContainer/FunctionTextInputs" instance=ExtResource("2_w6rve")]
 layout_mode = 2
 Index = 2
 DefaultColor = Color(0.93383, 0.523216, 0.915324, 1)
 
-[node name="FunctionInput3" parent="Background/Body/FunctionInputBox/Panel/VBox/FunctionTextInputs" instance=ExtResource("2_w6rve")]
+[node name="FunctionInput3" parent="Background/VBoxContainer/Body2/FoldableContainer/Functions/PanelContainer/VBox/ScrollContainer/MarginContainer/FunctionTextInputs" instance=ExtResource("2_w6rve")]
 layout_mode = 2
 Index = 3
 DefaultColor = Color(0.361382, 0.575835, 0.935612, 1)
 
-[node name="FunctionInput4" parent="Background/Body/FunctionInputBox/Panel/VBox/FunctionTextInputs" instance=ExtResource("2_w6rve")]
+[node name="FunctionInput4" parent="Background/VBoxContainer/Body2/FoldableContainer/Functions/PanelContainer/VBox/ScrollContainer/MarginContainer/FunctionTextInputs" instance=ExtResource("2_w6rve")]
 layout_mode = 2
 Index = 4
 DefaultColor = Color(0.74572, 0.612315, 0.379667, 1)
 
-[node name="FunctionInput5" parent="Background/Body/FunctionInputBox/Panel/VBox/FunctionTextInputs" instance=ExtResource("2_w6rve")]
+[node name="FunctionInput5" parent="Background/VBoxContainer/Body2/FoldableContainer/Functions/PanelContainer/VBox/ScrollContainer/MarginContainer/FunctionTextInputs" instance=ExtResource("2_w6rve")]
 layout_mode = 2
 Index = 5
 DefaultColor = Color(0.311299, 0.766342, 0.701705, 1)
 
-[node name="FunctionInput6" parent="Background/Body/FunctionInputBox/Panel/VBox/FunctionTextInputs" instance=ExtResource("2_w6rve")]
+[node name="FunctionInput6" parent="Background/VBoxContainer/Body2/FoldableContainer/Functions/PanelContainer/VBox/ScrollContainer/MarginContainer/FunctionTextInputs" instance=ExtResource("2_w6rve")]
 layout_mode = 2
 Index = 6
 DefaultColor = Color(0.48365, 0.396879, 0.922465, 1)
 
-[node name="SPACE" type="Control" parent="Background/Body/FunctionInputBox"]
-custom_minimum_size = Vector2(0, 30)
+[node name="FuncQuickButtonBox" type="HFlowContainer" parent="Background/VBoxContainer/Body2/FoldableContainer/Functions"]
 layout_mode = 2
-
-[node name="FuncQuickButtonBox" type="HFlowContainer" parent="Background/Body/FunctionInputBox"]
-custom_minimum_size = Vector2(0, 500)
-layout_mode = 2
+size_flags_vertical = 0
 theme_override_constants/h_separation = 20
 theme_override_constants/v_separation = 30
+alignment = 1
 
-[node name="HFlowContainer" type="HFlowContainer" parent="Background/Body/FunctionInputBox/FuncQuickButtonBox"]
+[node name="HFlowContainer" type="HFlowContainer" parent="Background/VBoxContainer/Body2/FoldableContainer/Functions/FuncQuickButtonBox"]
 custom_minimum_size = Vector2(200, 0)
 layout_mode = 2
 
-[node name="Button" type="Button" parent="Background/Body/FunctionInputBox/FuncQuickButtonBox/HFlowContainer"]
+[node name="Button" type="Button" parent="Background/VBoxContainer/Body2/FoldableContainer/Functions/FuncQuickButtonBox/HFlowContainer"]
 custom_minimum_size = Vector2(80, 35)
 layout_mode = 2
 
-[node name="Button2" type="Button" parent="Background/Body/FunctionInputBox/FuncQuickButtonBox/HFlowContainer"]
+[node name="Button2" type="Button" parent="Background/VBoxContainer/Body2/FoldableContainer/Functions/FuncQuickButtonBox/HFlowContainer"]
 custom_minimum_size = Vector2(80, 35)
 layout_mode = 2
 
-[node name="Button3" type="Button" parent="Background/Body/FunctionInputBox/FuncQuickButtonBox/HFlowContainer"]
+[node name="Button3" type="Button" parent="Background/VBoxContainer/Body2/FoldableContainer/Functions/FuncQuickButtonBox/HFlowContainer"]
 custom_minimum_size = Vector2(80, 35)
 layout_mode = 2
 
-[node name="Button4" type="Button" parent="Background/Body/FunctionInputBox/FuncQuickButtonBox/HFlowContainer"]
+[node name="Button4" type="Button" parent="Background/VBoxContainer/Body2/FoldableContainer/Functions/FuncQuickButtonBox/HFlowContainer"]
+custom_minimum_size = Vector2(80, 35)
+layout_mode = 2
+
+[node name="HFlowContainer2" type="HFlowContainer" parent="Background/VBoxContainer/Body2/FoldableContainer/Functions/FuncQuickButtonBox"]
+custom_minimum_size = Vector2(200, 0)
+layout_mode = 2
+
+[node name="Button" type="Button" parent="Background/VBoxContainer/Body2/FoldableContainer/Functions/FuncQuickButtonBox/HFlowContainer2"]
+custom_minimum_size = Vector2(80, 35)
+layout_mode = 2
+
+[node name="Button2" type="Button" parent="Background/VBoxContainer/Body2/FoldableContainer/Functions/FuncQuickButtonBox/HFlowContainer2"]
+custom_minimum_size = Vector2(80, 35)
+layout_mode = 2
+
+[node name="Button3" type="Button" parent="Background/VBoxContainer/Body2/FoldableContainer/Functions/FuncQuickButtonBox/HFlowContainer2"]
+custom_minimum_size = Vector2(80, 35)
+layout_mode = 2
+
+[node name="Button4" type="Button" parent="Background/VBoxContainer/Body2/FoldableContainer/Functions/FuncQuickButtonBox/HFlowContainer2"]
 custom_minimum_size = Vector2(80, 35)
 layout_mode = 2
