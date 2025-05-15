@@ -1,40 +1,65 @@
 extends Node
 class_name FunctionVisualizer2D
 
-
-var m_DynamicShader : Shader;
-
-@export var FunctionCoordBoundsMin : Vector2 = Vector2(-2, -2);
-@export var FunctionCoordBoundsMax : Vector2 = Vector2(2, 2);
-
-
 @export var DisplayItem : FunctionVisualizer2DDisplayCanvas
 
-
 var m_RenderMaterial : ShaderMaterial;
+var m_DynamicShader : Shader;
 var m_Time : float = 0.0;
 
-var m_FunctionCoordOffset : Vector2 = Vector2(0, 0);
+var m_FuncUnitsPerPixel : float = 0.01;
+var m_FunctionCoordBoundsMin : Vector2 = Vector2(-2, -2);
+var m_FunctionCoordBoundsMax : Vector2 = Vector2(2, 2);
+var m_ZoomLevel : float = 0.0;
+var m_PrimaryGridLineInterval : float = 0.5;
+
+var m_MousePos : Vector2 = Vector2(0, 0);
+
 var m_FunctionInputEdits : Array[FunctionInputEdit] = [];
+var m_ParamsInitialized : bool = false;
 
 func GetCurrentTime() -> float:
 	return m_Time;
 
+func GetFunctionCoordBoundsMin() -> Vector2:
+	return m_FunctionCoordBoundsMin;
+	
+func GetFunctionCoordBoundsMax() -> Vector2:
+	return m_FunctionCoordBoundsMax;
+
+func GetZoomLevel() -> float:
+	return m_ZoomLevel;
+	
+func GetGridLineIntervals() -> Vector2:
+	return Vector2(m_PrimaryGridLineInterval, m_PrimaryGridLineInterval * 5);
+	
+func GetMousePosition() -> Vector2:
+	return m_MousePos;
+	
 func ResetCurrentTime() -> void:
 	m_Time = 0.0;	
 
-func _ready() -> void:
+func InitializeParamatersIfNeeded() -> void:
+	if m_ParamsInitialized:
+		return;
 	ResetCurrentTime();
-	
-	DisplayItem.drag_moved.connect(_on_drag_moved)
-	
-	m_FunctionInputEdits = [];
+	DisplayItem.drag_moved.connect(_on_drag_moved);
+	DisplayItem.zoom_changed.connect(_on_zoom_changed);
+	DisplayItem.mouse_moved.connect(_on_mouse_position_got);
+	m_FunctionInputEdits = []
+	m_FuncUnitsPerPixel = 0.005;
+	m_MousePos = Vector2(0, 0);
+	m_ZoomLevel = 0.0;
+	m_FunctionCoordBoundsMin = DisplayItem.size * Vector2(-0.5, -0.5) * m_FuncUnitsPerPixel;
+	m_FunctionCoordBoundsMax = DisplayItem.size * Vector2(0.5, 0.5) * m_FuncUnitsPerPixel;
+	m_PrimaryGridLineInterval = 1;
 	var children := find_children("","FunctionInputEdit",true,true);
 	for child in children:
 		var tryCast := child as FunctionInputEdit
 		if tryCast != null:
 			m_FunctionInputEdits.append(tryCast);
-			tryCast.text_changed.connect(_on_FunctionInputEdit_text_changed)
+			tryCast.text_changed.connect(_on_FunctionInputEdit_text_changed);
+	m_ParamsInitialized = true;
 
 func _on_FunctionInputEdit_text_changed(index :int, content : String) -> void:
 	print("FunctionInputEdit_text_changed: ", index, content)
@@ -42,14 +67,30 @@ func _on_FunctionInputEdit_text_changed(index :int, content : String) -> void:
 func _on_drag_moved(canvasDelta: Vector2) -> void:
 	var funcCoordDelta := canvasDelta;
 	funcCoordDelta.y = -funcCoordDelta.y;
+	funcCoordDelta *= m_FuncUnitsPerPixel;
+	m_FunctionCoordBoundsMin -= funcCoordDelta
+	m_FunctionCoordBoundsMax -= funcCoordDelta
 	
-	var canvasSize := DisplayItem.size;
-	var factor := (FunctionCoordBoundsMax - FunctionCoordBoundsMin) / canvasSize;
-	funcCoordDelta *= factor;
+func _on_zoom_changed(zoomDelta: float) -> void:
+	var zoomFactor : float = 1.05
+	if zoomDelta < 0:
+		m_ZoomLevel += 0.5;
+		m_FuncUnitsPerPixel *= zoomFactor;
+		m_FunctionCoordBoundsMin *= zoomFactor;
+		m_FunctionCoordBoundsMax *= zoomFactor;
+		m_PrimaryGridLineInterval *= sqrt(zoomFactor)
+	else:
+		m_ZoomLevel -= 0.5;
+		m_FuncUnitsPerPixel /= zoomFactor;
+		m_FunctionCoordBoundsMin /= zoomFactor;
+		m_FunctionCoordBoundsMax /= zoomFactor;
+		m_PrimaryGridLineInterval /= sqrt(zoomFactor)
+		
+func _on_mouse_position_got(mousePos: Vector2) -> void:
+	m_MousePos = mousePos;
 	
-	m_FunctionCoordOffset -= funcCoordDelta;
-
 func InitializeIfNeeded() -> void:
+	InitializeParamatersIfNeeded();
 	if not m_DynamicShader:
 		m_DynamicShader = Shader.new();
 		m_DynamicShader.code = SHADER_CODE_TEMPLATE;
@@ -57,7 +98,6 @@ func InitializeIfNeeded() -> void:
 	if not m_RenderMaterial:
 		m_RenderMaterial = ShaderMaterial.new();
 		m_RenderMaterial.shader = m_DynamicShader;
-		m_RenderMaterial.set_shader_parameter("_Time", m_Time);
 
 func ReleaseResourcesIfNeeded() -> void:
 	if m_RenderMaterial:
@@ -67,8 +107,13 @@ func ReleaseResourcesIfNeeded() -> void:
 	if m_DynamicShader:
 		m_DynamicShader.unreference()
 		m_DynamicShader = null;
+	for input in m_FunctionInputEdits:
+		input.text_changed.disconnect(_on_FunctionInputEdit_text_changed);	
 	m_FunctionInputEdits.clear()
-		
+	DisplayItem.drag_moved.disconnect(_on_drag_moved);
+	DisplayItem.zoom_changed.disconnect(_on_zoom_changed);
+	DisplayItem.mouse_moved.disconnect(_on_mouse_position_got);
+	
 func UpdateMaterialProperties() -> void:
 	if not m_RenderMaterial or not m_DynamicShader or not DisplayItem:
 		return;
@@ -76,11 +121,7 @@ func UpdateMaterialProperties() -> void:
 		return;
 		
 	m_RenderMaterial.set_shader_parameter("_Time", m_Time);
-	var funcCoordBounds := Vector4(FunctionCoordBoundsMin.x, FunctionCoordBoundsMin.y, FunctionCoordBoundsMax.x, FunctionCoordBoundsMax.y)
-	funcCoordBounds.x += m_FunctionCoordOffset.x;
-	funcCoordBounds.y += m_FunctionCoordOffset.y;
-	funcCoordBounds.z += m_FunctionCoordOffset.x;
-	funcCoordBounds.w += m_FunctionCoordOffset.y;
+	var funcCoordBounds := Vector4(m_FunctionCoordBoundsMin.x, m_FunctionCoordBoundsMin.y, m_FunctionCoordBoundsMax.x, m_FunctionCoordBoundsMax.y)
 	m_RenderMaterial.set_shader_parameter("_FunctionCoordBoundsMinMax", funcCoordBounds);
 	for input in m_FunctionInputEdits:
 		m_RenderMaterial.set_shader_parameter("_Color" + str(input.Index), input.m_ColorPickerButton.color);
@@ -90,7 +131,10 @@ func UpdateMaterialProperties() -> void:
 	posSize.z = DisplayItem.size.x;
 	posSize.w = DisplayItem.size.y;
 	m_RenderMaterial.set_shader_parameter("_CanvasItemPositionSize", posSize);
-
+	m_RenderMaterial.set_shader_parameter("_FuncUnitsPerPixel", m_FuncUnitsPerPixel);
+	var gridLineIntervals : Vector2 = GetGridLineIntervals();
+	m_RenderMaterial.set_shader_parameter("_GridLineInterval", gridLineIntervals);
+	
 # Called every frame. 'delta' is the elapsed time since the previous frame.
 func _process(delta: float) -> void:
 	m_Time += delta;
@@ -101,6 +145,7 @@ func _process(delta: float) -> void:
 	
 	
 func _exit_tree() -> void:
+	m_ParamsInitialized = false;
 	ReleaseResourcesIfNeeded();
 	queue_free();
 
@@ -110,6 +155,8 @@ shader_type canvas_item;
 uniform float _Time;
 uniform vec4 _FunctionCoordBoundsMinMax;
 uniform vec4 _CanvasItemPositionSize;
+uniform vec2 _GridLineInterval;
+
 varying flat mat4 _WorldToScreenMatrix; 
 
 uniform vec4 _Color1;
@@ -125,6 +172,15 @@ vec2 UVToFuncSpaceCoord(vec2 uv)
 	vec2 boundsMax = _FunctionCoordBoundsMinMax.zw;
 	
 	return mix(boundsMin, boundsMax, uv);
+}
+
+vec2 UVToFuncSpaceCoord2(vec2 uv)
+{
+	uv = uv - 0.5f;
+	float aspectRatio = (_CanvasItemPositionSize.z / _CanvasItemPositionSize.w);
+	uv.x *= aspectRatio;
+	
+	return uv * 5.0;
 }
 
 vec2 FuncSpaceCoordToUV(vec2 coord)
@@ -186,13 +242,30 @@ float f6(float x)
 	return abs(x) < 1e-6f ? 0.0f : 1.0f / x;
 }
 
-float GetLerpFactor(vec2 coord, float funcY, float funcSlope)
-{
-	float dist = abs(coord.y - funcY);
-	float scaler = length(vec2(dFdx(coord.x), dFdy(coord.y))) * 1000.0f;
-	float upper = mix(0.001, 0.05, clamp(abs(funcSlope) * 0.01f, 0, 1));
-	return smoothstep(upper * scaler, 0, dist);
+#define DECLARE_FUNC_GetLerpFactor(index) float GetLerpFactor##index(vec2 coord, float funcY, float funcSlope) { \
+	float minDist = 1e10; \
+	float unitsPerPixel = dFdx(coord.x); \
+	float xMin = coord.x - unitsPerPixel * 2.0; \
+	float xMax = coord.x + unitsPerPixel * 2.0; \
+	int steps = 64; \
+	float dx = (xMax - xMin) / float(steps); \
+	for (int i = 0; i < steps; ++i) \
+	{ \
+		float x = xMin + float(i) * dx; \
+		float y = f##index(x); \
+		float dist = length(coord - vec2(x, y)); \
+		minDist = min(minDist, dist); \
+	} \
+	float pixelDist = minDist / unitsPerPixel; \
+	return smoothstep(2, 1, pixelDist); \
 }
+
+DECLARE_FUNC_GetLerpFactor(1)
+DECLARE_FUNC_GetLerpFactor(2)
+DECLARE_FUNC_GetLerpFactor(3)
+DECLARE_FUNC_GetLerpFactor(4)
+DECLARE_FUNC_GetLerpFactor(5)
+DECLARE_FUNC_GetLerpFactor(6)
 
 #define DECLARE_FUNC_ApplyFunctionGraph(index) vec4 ApplyFunctionGraph_##index(vec4 inColor, vec4 funcGraphColor, vec2 coord) { \
 	float epsilon = 0.000001f; \
@@ -200,7 +273,7 @@ float GetLerpFactor(vec2 coord, float funcY, float funcSlope)
 	float funcValueLeft  = f##index(coord.x - epsilon); \
 	float funcValueRight = f##index(coord.x + epsilon); \
 	float slope = (funcValueRight - funcValueLeft) / epsilon; \
-	float factor = GetLerpFactor(coord, funcValue, slope); \
+	float factor = GetLerpFactor##index(coord, funcValue, slope); \
 	return mix(inColor, funcGraphColor, factor); \
 }
 
@@ -265,10 +338,10 @@ void fragment()
 	
 	vec2 screenSize = 1.0f / SCREEN_PIXEL_SIZE;
 	
-	finalColor = ApplyGridLines(finalColor, vec4(0.25, 0.25, 0.25, 1), coord, screenSize, 0.1, 2);
-	finalColor = ApplyGridLines(finalColor, vec4(0.45, 0.45, 0.45, 1), coord, screenSize, 0.5, 4);
-	finalColor = ApplyHorizontalLine(finalColor, vec4(0.55, 0.55, 0.55, 1), coord, 0.0, 6);
-	finalColor = ApplyVerticalLine(finalColor, vec4(0.55, 0.55, 0.55, 1), coord, 0.0, 6);
+	finalColor = ApplyGridLines(finalColor, vec4(0.25, 0.25, 0.25, 1), coord, screenSize, _GridLineInterval.x, 2);
+	finalColor = ApplyGridLines(finalColor, vec4(0.45, 0.45, 0.45, 1), coord, screenSize, _GridLineInterval.y, 4);
+	finalColor = ApplyHorizontalLine(finalColor, vec4(0.65, 0.65, 0.65, 1), coord, 0.0, 4);
+	finalColor = ApplyVerticalLine(finalColor, vec4(0.65, 0.65, 0.65, 1), coord, 0.0, 4);
 	finalColor = ApplyFunctionGraph_1(finalColor, _Color1, coord);
 	finalColor = ApplyFunctionGraph_2(finalColor, _Color2, coord);
 	finalColor = ApplyFunctionGraph_3(finalColor, _Color3, coord);

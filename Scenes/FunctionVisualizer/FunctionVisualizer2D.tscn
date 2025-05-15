@@ -1,9 +1,10 @@
-[gd_scene load_steps=8 format=3 uid="uid://bfde3vpnmspyc"]
+[gd_scene load_steps=9 format=3 uid="uid://bfde3vpnmspyc"]
 
 [ext_resource type="Script" uid="uid://b44qcq5mv7118" path="res://Scripts/FunctionVisualizer/FunctionVisualizer2D.gd" id="1_3wf0p"]
 [ext_resource type="Material" uid="uid://xjq4pcynnlhb" path="res://Scripts/FunctionVisualizer/new_shader_material.material" id="1_ig1e0"]
 [ext_resource type="PackedScene" uid="uid://ct4rmrtcgc8lc" path="res://Scenes/FunctionVisualizer/FunctionInput.tscn" id="2_w6rve"]
 [ext_resource type="Script" uid="uid://k0eh8h78swwy" path="res://Scripts/FunctionVisualizer/FunctionVisualizer2DDisplayCanvas.gd" id="3_wjtke"]
+[ext_resource type="Script" uid="uid://d2yvjxowkjm7e" path="res://Scripts/FunctionVisualizer/FunctionVisualizer2DInfoLabels.gd" id="4_eodmu"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_w6rve"]
 content_margin_left = 0.0
@@ -41,8 +42,6 @@ grow_vertical = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
 script = ExtResource("1_3wf0p")
-FunctionCoordBoundsMin = Vector2(-3.2, -1.8)
-FunctionCoordBoundsMax = Vector2(3.2, 1.8)
 DisplayItem = NodePath("Background/VBoxContainer/Body2/VisualizeDisplay")
 
 [node name="Background" type="Panel" parent="."]
@@ -149,6 +148,29 @@ text = "？"
 custom_minimum_size = Vector2(50, 0)
 layout_mode = 2
 text = "+"
+
+[node name="HBoxContainer" type="HBoxContainer" parent="Background/VBoxContainer/Body2/FoldableContainer/Functions/PanelContainer/VBox" node_paths=PackedStringArray("FuncVisualizer2D", "MousePosLabel", "TimeLabel", "ZoomInfoLevel")]
+layout_mode = 2
+script = ExtResource("4_eodmu")
+FuncVisualizer2D = NodePath("../../../../../../../..")
+MousePosLabel = NodePath("Label")
+TimeLabel = NodePath("Label2")
+ZoomInfoLevel = NodePath("Label3")
+
+[node name="Label" type="Label" parent="Background/VBoxContainer/Body2/FoldableContainer/Functions/PanelContainer/VBox/HBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 5
+
+[node name="Label2" type="Label" parent="Background/VBoxContainer/Body2/FoldableContainer/Functions/PanelContainer/VBox/HBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 5
+
+[node name="Label3" type="Label" parent="Background/VBoxContainer/Body2/FoldableContainer/Functions/PanelContainer/VBox/HBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 5
 
 [node name="ScrollContainer" type="ScrollContainer" parent="Background/VBoxContainer/Body2/FoldableContainer/Functions/PanelContainer/VBox"]
 clip_contents = false

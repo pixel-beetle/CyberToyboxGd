@@ -3,6 +3,7 @@ class_name FunctionVisualizer2DDisplayCanvas
 
 signal drag_moved(deltaPos : Vector2)
 signal zoom_changed(deltaZoom : float)
+signal mouse_moved(mousePos : Vector2)
 
 var m_PrevDragPos : Vector2 = Vector2()
 var m_IsDragging : bool = false
@@ -24,7 +25,12 @@ func _gui_input(event: InputEvent) -> void:
 			else:
 				m_IsDragging = false
 				print("Stopped dragging", event.position)
+		elif event.button_index == MOUSE_BUTTON_WHEEL_UP:
+			zoom_changed.emit(1.0)
+		elif event.button_index == MOUSE_BUTTON_WHEEL_DOWN:
+			zoom_changed.emit(-1.0)
 	if event is InputEventMouseMotion:
+		mouse_moved.emit(event.position)
 		if m_IsDragging:
 			var delta: Vector2 = event.position - m_PrevDragPos
 			print("Dragging", delta)
