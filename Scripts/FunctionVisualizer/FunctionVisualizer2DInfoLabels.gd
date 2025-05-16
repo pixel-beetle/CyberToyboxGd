@@ -19,7 +19,7 @@ func _process(delta: float) -> void:
 	if MousePosLabel:
 		MousePosLabel.text = "Mouse Pos: " + str(FuncVisualizer2D.GetMousePosition())
 	if TimeLabel:
-		TimeLabel.text = "t = " + str(FuncVisualizer2D.GetCurrentTime())
+		TimeLabel.text = "t = %.3f" % (FuncVisualizer2D.GetCurrentTime())
 	if ZoomInfoLevel:
 		ZoomInfoLevel.text = "BoundsMin = " + str(FuncVisualizer2D.GetFunctionCoordBoundsMin()) + "\n" + \
  		" BoundsMax = " + str(FuncVisualizer2D.GetFunctionCoordBoundsMax()) + "\n" +  \

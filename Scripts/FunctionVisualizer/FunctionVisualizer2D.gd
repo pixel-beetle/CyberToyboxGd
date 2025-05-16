@@ -29,9 +29,28 @@ func GetFunctionCoordBoundsMax() -> Vector2:
 
 func GetZoomLevel() -> float:
 	return m_ZoomLevel;
+
+func CalculateGridSpacing(scale : float) -> float:
+	# 基础单位（大约在scale=1时显示10条格线）
+	var baseUnit := 2.0 / 10.0;  # 2.0是因为我们的坐标范围是[-1,1]
+	# 根据缩放级别调整间距
+	var logScale : float = log(scale) / log(10.0);
+	var power : float = floor(logScale);
+	var fraction :float = logScale - power;
 	
+	# 选择1, 2或5作为乘数
+	var multiplier := 1.0;
+	if fraction > log(5.0)/log(10.0):
+		multiplier = 5.0;
+	elif fraction > log(2.0)/log(10.0):
+		multiplier = 2.0;
+	
+	return baseUnit * pow(10.0, power) * multiplier;
+
+
 func GetGridLineIntervals() -> Vector2:
-	return Vector2(m_PrimaryGridLineInterval, m_PrimaryGridLineInterval * 5);
+	var primary := CalculateGridSpacing(m_ZoomLevel);
+	return Vector2(primary, primary * 5);
 	
 func GetMousePosition() -> Vector2:
 	return m_MousePos;
@@ -49,7 +68,7 @@ func InitializeParamatersIfNeeded() -> void:
 	m_FunctionInputEdits = []
 	m_FuncUnitsPerPixel = 0.005;
 	m_MousePos = Vector2(0, 0);
-	m_ZoomLevel = 0.0;
+	m_ZoomLevel = 1.0;
 	m_FunctionCoordBoundsMin = DisplayItem.size * Vector2(-0.5, -0.5) * m_FuncUnitsPerPixel;
 	m_FunctionCoordBoundsMax = DisplayItem.size * Vector2(0.5, 0.5) * m_FuncUnitsPerPixel;
 	m_PrimaryGridLineInterval = 1;
@@ -74,13 +93,13 @@ func _on_drag_moved(canvasDelta: Vector2) -> void:
 func _on_zoom_changed(zoomDelta: float) -> void:
 	var zoomFactor : float = 1.05
 	if zoomDelta < 0:
-		m_ZoomLevel += 0.5;
+		m_ZoomLevel *= zoomFactor;
 		m_FuncUnitsPerPixel *= zoomFactor;
 		m_FunctionCoordBoundsMin *= zoomFactor;
 		m_FunctionCoordBoundsMax *= zoomFactor;
 		m_PrimaryGridLineInterval *= sqrt(zoomFactor)
 	else:
-		m_ZoomLevel -= 0.5;
+		m_ZoomLevel /= zoomFactor;
 		m_FuncUnitsPerPixel /= zoomFactor;
 		m_FunctionCoordBoundsMin /= zoomFactor;
 		m_FunctionCoordBoundsMax /= zoomFactor;
@@ -138,6 +157,8 @@ func UpdateMaterialProperties() -> void:
 # Called every frame. 'delta' is the elapsed time since the previous frame.
 func _process(delta: float) -> void:
 	m_Time += delta;
+	if m_Time > 10000:
+		m_Time = 0.0;
 	InitializeIfNeeded();
 	UpdateMaterialProperties();
 	if DisplayItem:
@@ -245,9 +266,9 @@ float f6(float x)
 #define DECLARE_FUNC_GetLerpFactor(index) float GetLerpFactor##index(vec2 coord, float funcY, float funcSlope) { \
 	float minDist = 1e10; \
 	float unitsPerPixel = dFdx(coord.x); \
-	float xMin = coord.x - unitsPerPixel * 2.0; \
-	float xMax = coord.x + unitsPerPixel * 2.0; \
-	int steps = 64; \
+	float xMin = coord.x - unitsPerPixel * 4.0; \
+	float xMax = coord.x + unitsPerPixel * 4.0; \
+	int steps = 128; \
 	float dx = (xMax - xMin) / float(steps); \
 	for (int i = 0; i < steps; ++i) \
 	{ \
@@ -257,7 +278,7 @@ float f6(float x)
 		minDist = min(minDist, dist); \
 	} \
 	float pixelDist = minDist / unitsPerPixel; \
-	return smoothstep(2, 1, pixelDist); \
+	return smoothstep(3, 2, pixelDist); \
 }
 
 DECLARE_FUNC_GetLerpFactor(1)
