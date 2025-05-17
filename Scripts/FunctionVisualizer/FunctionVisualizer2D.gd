@@ -5,6 +5,7 @@ class_name FunctionVisualizer2D
 
 var m_RenderMaterial : ShaderMaterial;
 var m_DynamicShader : Shader;
+var m_DummyShaderForCompileCheck : Shader;
 var m_Time : float = 0.0;
 
 var m_FuncUnitsPerPixel : float = 0.01;
@@ -79,6 +80,21 @@ func InitializeParamatersIfNeeded() -> void:
 	m_ParamsInitialized = true;
 
 func _on_FunctionInputEdit_text_changed(index :int, content : String) -> void:
+	m_DummyShaderForCompileCheck.code = """
+	shader_type canvas_item;
+	uniform vec4 _Color;
+	float fx(float x){
+		return <BODY>;
+	}
+	void fragment() {
+		float f = fx(0.0);
+		COLOR = _Color;
+	}
+	""".replace("<BODY>", content);
+	if m_DummyShaderForCompileCheck.get_shader_uniform_list().is_empty():
+		print("Invalid Input %s" % content)
+	else:
+		print("Valid Input %s" % content)
 	print("FunctionInputEdit_text_changed: ", index, content)
 
 func _on_drag_moved(canvasDelta: Vector2) -> void:
@@ -106,6 +122,10 @@ func _on_mouse_position_got(mousePos: Vector2) -> void:
 	
 func InitializeIfNeeded() -> void:
 	InitializeParamatersIfNeeded();
+	if not m_DummyShaderForCompileCheck:
+		m_DummyShaderForCompileCheck = Shader.new();
+		m_DummyShaderForCompileCheck.code = SHADER_CODE_TEMPLATE_DUMMY
+		
 	if not m_DynamicShader:
 		m_DynamicShader = Shader.new();
 		m_DynamicShader.code = SHADER_CODE_TEMPLATE;
@@ -122,6 +142,9 @@ func ReleaseResourcesIfNeeded() -> void:
 	if m_DynamicShader:
 		m_DynamicShader.unreference()
 		m_DynamicShader = null;
+	if m_DummyShaderForCompileCheck:
+		m_DummyShaderForCompileCheck.unreference()
+		m_DummyShaderForCompileCheck = null; 
 	for input in m_FunctionInputEdits:
 		input.text_changed.disconnect(_on_FunctionInputEdit_text_changed);	
 	m_FunctionInputEdits.clear()
@@ -165,6 +188,14 @@ func _exit_tree() -> void:
 	m_ParamsInitialized = false;
 	ReleaseResourcesIfNeeded();
 	queue_free();
+
+const SHADER_CODE_TEMPLATE_DUMMY :String = """
+shader_type canvas_item;
+uniform vec4 _Color;
+void fragment() {
+	COLOR = _Color;
+}
+"""
 
 const SHADER_CODE_TEMPLATE : String = """
 shader_type canvas_item;
