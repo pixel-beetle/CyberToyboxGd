@@ -11,7 +11,6 @@ var m_FuncUnitsPerPixel : float = 0.01;
 var m_FunctionCoordBoundsMin : Vector2 = Vector2(-2, -2);
 var m_FunctionCoordBoundsMax : Vector2 = Vector2(2, 2);
 var m_ZoomLevel : float = 0.0;
-var m_PrimaryGridLineInterval : float = 0.5;
 
 var m_MousePos : Vector2 = Vector2(0, 0);
 
@@ -71,7 +70,6 @@ func InitializeParamatersIfNeeded() -> void:
 	m_ZoomLevel = 1.0;
 	m_FunctionCoordBoundsMin = DisplayItem.size * Vector2(-0.5, -0.5) * m_FuncUnitsPerPixel;
 	m_FunctionCoordBoundsMax = DisplayItem.size * Vector2(0.5, 0.5) * m_FuncUnitsPerPixel;
-	m_PrimaryGridLineInterval = 1;
 	var children := find_children("","FunctionInputEdit",true,true);
 	for child in children:
 		var tryCast := child as FunctionInputEdit
@@ -97,13 +95,11 @@ func _on_zoom_changed(zoomDelta: float) -> void:
 		m_FuncUnitsPerPixel *= zoomFactor;
 		m_FunctionCoordBoundsMin *= zoomFactor;
 		m_FunctionCoordBoundsMax *= zoomFactor;
-		m_PrimaryGridLineInterval *= sqrt(zoomFactor)
 	else:
 		m_ZoomLevel /= zoomFactor;
 		m_FuncUnitsPerPixel /= zoomFactor;
 		m_FunctionCoordBoundsMin /= zoomFactor;
 		m_FunctionCoordBoundsMax /= zoomFactor;
-		m_PrimaryGridLineInterval /= sqrt(zoomFactor)
 		
 func _on_mouse_position_got(mousePos: Vector2) -> void:
 	m_MousePos = mousePos;
@@ -173,29 +169,30 @@ func _exit_tree() -> void:
 const SHADER_CODE_TEMPLATE : String = """
 shader_type canvas_item;
 
+#define float2 vec2
+#define float3 vec3
+#define float4 vec4
+
+#define float4x4 mat4
+#define lerp mix
+
+
 uniform float _Time;
-uniform vec4 _FunctionCoordBoundsMinMax;
-uniform vec4 _CanvasItemPositionSize;
-uniform vec2 _GridLineInterval;
+uniform float4 _FunctionCoordBoundsMinMax;
+uniform float4 _CanvasItemPositionSize;
+uniform float2 _GridLineInterval;
 
-varying flat mat4 _WorldToScreenMatrix; 
+varying flat float4x4 _WorldToScreenMatrix; 
 
-uniform vec4 _Color1;
-uniform vec4 _Color2;
-uniform vec4 _Color3;
-uniform vec4 _Color4;
-uniform vec4 _Color5;
-uniform vec4 _Color6;
-
-vec2 UVToFuncSpaceCoord(vec2 uv)
+float2 UVToFuncSpaceCoord(float2 uv)
 {
-	vec2 boundsMin = _FunctionCoordBoundsMinMax.xy;
-	vec2 boundsMax = _FunctionCoordBoundsMinMax.zw;
+	float2 boundsMin = _FunctionCoordBoundsMinMax.xy;
+	float2 boundsMax = _FunctionCoordBoundsMinMax.zw;
 	
-	return mix(boundsMin, boundsMax, uv);
+	return lerp(boundsMin, boundsMax, uv);
 }
 
-vec2 UVToFuncSpaceCoord2(vec2 uv)
+float2 UVToFuncSpaceCoord2(float2 uv)
 {
 	uv = uv - 0.5f;
 	float aspectRatio = (_CanvasItemPositionSize.z / _CanvasItemPositionSize.w);
@@ -204,34 +201,71 @@ vec2 UVToFuncSpaceCoord2(vec2 uv)
 	return uv * 5.0;
 }
 
-vec2 FuncSpaceCoordToUV(vec2 coord)
+float2 FuncSpaceCoordToUV(float2 coord)
 {
-	vec2 boundsMin = _FunctionCoordBoundsMinMax.xy;
-	vec2 boundsMax = _FunctionCoordBoundsMinMax.zw;
+	float2 boundsMin = _FunctionCoordBoundsMinMax.xy;
+	float2 boundsMax = _FunctionCoordBoundsMinMax.zw;
 	
 	return (coord - boundsMin) / (boundsMax - boundsMin);
 }
 
-vec2 FuncSpaceCoordToScreenUV(vec2 coord)
+float2 FuncSpaceCoordToScreenUV(float2 coord)
 {
-	vec2 uv = FuncSpaceCoordToUV(coord);
-	vec2 uv_TopIs0 = uv;
+	float2 uv = FuncSpaceCoordToUV(coord);
+	float2 uv_TopIs0 = uv;
 	uv_TopIs0.y = 1.0 - uv_TopIs0.y;
 	
-	vec2 worldPosLeftTop = _CanvasItemPositionSize.xy;
-	vec2 worldSize = _CanvasItemPositionSize.zw;
-	vec2 worldPos = worldPosLeftTop + worldSize * uv_TopIs0;
+	float2 worldPosLeftTop = _CanvasItemPositionSize.xy;
+	float2 worldSize = _CanvasItemPositionSize.zw;
+	float2 worldPos = worldPosLeftTop + worldSize * uv_TopIs0;
 	
-	vec4 clipPos = _WorldToScreenMatrix * vec4(worldPos, 0, 1);
-	vec2 screenUV = clipPos.xy * 0.5f + 0.5f;
+	float4 clipPos = _WorldToScreenMatrix * float4(worldPos, 0, 1);
+	float2 screenUV = clipPos.xy * 0.5f + 0.5f;
 	return screenUV;
 }
 
-vec2 FuncSpaceCoordToScreenPos(vec2 coord, vec2 screenSize)
+float2 FuncSpaceCoordToScreenPos(float2 coord, float2 screenSize)
 {
-	vec2 screenUV = FuncSpaceCoordToScreenUV(coord);
+	float2 screenUV = FuncSpaceCoordToScreenUV(coord);
 	return screenUV * screenSize;
 }
+
+#define DECLARE_FUNC_GetLerpFactor(index) float GetLerpFactor##index(float2 coord, float funcY, float funcSlope) { \
+	float minDist = 1e10; \
+	float unitsPerPixel = dFdx(coord.x); \
+	float xMin = coord.x - unitsPerPixel * 4.0; \
+	float xMax = coord.x + unitsPerPixel * 4.0; \
+	int steps = 128; \
+	float dx = (xMax - xMin) / float(steps); \
+	for (int i = 0; i < steps; ++i) \
+	{ \
+		float x = xMin + float(i) * dx; \
+		float y = f##index(x); \
+		float dist = length(coord - vec2(x, y)); \
+		minDist = min(minDist, dist); \
+	} \
+	float pixelDist = minDist / unitsPerPixel; \
+	return smoothstep(3, 2, pixelDist); \
+}
+
+#define DECLARE_FUNC_ApplyFunctionGraph(index) float4 ApplyFunctionGraph_##index(float4 inColor, float4 funcGraphColor, float2 coord) { \
+	float epsilon = 0.000001f; \
+	float funcValue 	 = f##index(coord.x); \
+	float funcValueLeft  = f##index(coord.x - epsilon); \
+	float funcValueRight = f##index(coord.x + epsilon); \
+	float slope = (funcValueRight - funcValueLeft) / epsilon; \
+	float factor = GetLerpFactor##index(coord, funcValue, slope); \
+	return lerp(inColor, funcGraphColor, factor); \
+}
+
+
+//<DynamicGeneratedFunctions>
+uniform float4 _Color1;
+uniform float4 _Color2;
+uniform float4 _Color3;
+uniform float4 _Color4;
+uniform float4 _Color5;
+uniform float4 _Color6;
 
 float f1(float x)
 {
@@ -263,40 +297,12 @@ float f6(float x)
 	return abs(x) < 1e-6f ? 0.0f : 1.0f / x;
 }
 
-#define DECLARE_FUNC_GetLerpFactor(index) float GetLerpFactor##index(vec2 coord, float funcY, float funcSlope) { \
-	float minDist = 1e10; \
-	float unitsPerPixel = dFdx(coord.x); \
-	float xMin = coord.x - unitsPerPixel * 4.0; \
-	float xMax = coord.x + unitsPerPixel * 4.0; \
-	int steps = 128; \
-	float dx = (xMax - xMin) / float(steps); \
-	for (int i = 0; i < steps; ++i) \
-	{ \
-		float x = xMin + float(i) * dx; \
-		float y = f##index(x); \
-		float dist = length(coord - vec2(x, y)); \
-		minDist = min(minDist, dist); \
-	} \
-	float pixelDist = minDist / unitsPerPixel; \
-	return smoothstep(3, 2, pixelDist); \
-}
-
 DECLARE_FUNC_GetLerpFactor(1)
 DECLARE_FUNC_GetLerpFactor(2)
 DECLARE_FUNC_GetLerpFactor(3)
 DECLARE_FUNC_GetLerpFactor(4)
 DECLARE_FUNC_GetLerpFactor(5)
 DECLARE_FUNC_GetLerpFactor(6)
-
-#define DECLARE_FUNC_ApplyFunctionGraph(index) vec4 ApplyFunctionGraph_##index(vec4 inColor, vec4 funcGraphColor, vec2 coord) { \
-	float epsilon = 0.000001f; \
-	float funcValue 	 = f##index(coord.x); \
-	float funcValueLeft  = f##index(coord.x - epsilon); \
-	float funcValueRight = f##index(coord.x + epsilon); \
-	float slope = (funcValueRight - funcValueLeft) / epsilon; \
-	float factor = GetLerpFactor##index(coord, funcValue, slope); \
-	return mix(inColor, funcGraphColor, factor); \
-}
 
 DECLARE_FUNC_ApplyFunctionGraph(1)
 DECLARE_FUNC_ApplyFunctionGraph(2)
@@ -305,18 +311,30 @@ DECLARE_FUNC_ApplyFunctionGraph(4)
 DECLARE_FUNC_ApplyFunctionGraph(5)
 DECLARE_FUNC_ApplyFunctionGraph(6)
 
+float4 AppyFunctionGraphs(float4 inColor, float2 coord)
+{
+	float4 finalColor = inColor;
+	finalColor = ApplyFunctionGraph_1(finalColor, _Color1, coord);
+	finalColor = ApplyFunctionGraph_2(finalColor, _Color2, coord);
+	finalColor = ApplyFunctionGraph_3(finalColor, _Color3, coord);
+	finalColor = ApplyFunctionGraph_4(finalColor, _Color4, coord);
+	finalColor = ApplyFunctionGraph_5(finalColor, _Color5, coord);
+	finalColor = ApplyFunctionGraph_6(finalColor, _Color6, coord);
+	return finalColor;
+}
 
+//</DynamicGeneratedFunctions>
 
 void vertex()
 {
 	_WorldToScreenMatrix = SCREEN_MATRIX * CANVAS_MATRIX;
 }
 
-vec4 ApplyGridLines(vec4 inColor, vec4 gridColor, vec2 coord, vec2 screenSize, float gridSize, float gridLinePixelWidth)
+float4 ApplyGridLines(float4 inColor, float4 gridColor, float2 coord, float2 screenSize, float gridSize, float gridLinePixelWidth)
 {
-	vec2 gridSize2D = vec2(gridSize, gridSize);
-	vec2 gridId = floor(coord / gridSize2D);
-	vec2 gridMin = gridId * gridSize2D;
+	float2 gridSize2D = float2(gridSize, gridSize);
+	float2 gridId = floor(coord / gridSize2D);
+	float2 gridMin = gridId * gridSize2D;
 	
 	float halfGridLineWidth = gridLinePixelWidth * 0.5f;
 
@@ -324,51 +342,46 @@ vec4 ApplyGridLines(vec4 inColor, vec4 gridColor, vec2 coord, vec2 screenSize, f
 					|| (abs(coord.y - gridMin.y) < halfGridLineWidth * dFdx(coord.x));
 					
 	float factor = isLine ? 1.0 : 0.0;
-	return mix(inColor, gridColor, factor);
+	return lerp(inColor, gridColor, factor);
 }
 
-vec4 ApplyHorizontalLine(vec4 inColor, vec4 lineColor, vec2 coord, float Y, float linePixelWidth)
+float4 ApplyHorizontalLine(float4 inColor, float4 lineColor, float2 coord, float Y, float linePixelWidth)
 {
 	float halfLineWidth = linePixelWidth * 0.5f;
 
 	bool isLine = (abs(coord.y - Y) < halfLineWidth * dFdx(coord.x));
 	
 	float factor = isLine ? 1.0 : 0.0;
-	return mix(inColor, lineColor, factor);
+	return lerp(inColor, lineColor, factor);
 }
 
-vec4 ApplyVerticalLine(vec4 inColor, vec4 lineColor, vec2 coord, float X, float linePixelWidth)
+float4 ApplyVerticalLine(float4 inColor, float4 lineColor, float2 coord, float X, float linePixelWidth)
 {
 	float halfLineWidth = linePixelWidth * 0.5f;
 
 	bool isLine = (abs(coord.x - X) < halfLineWidth * dFdx(coord.x));
 	
 	float factor = isLine ? 1.0 : 0.0;
-	return mix(inColor, lineColor, factor);
+	return lerp(inColor, lineColor, factor);
 }
 
 void fragment() 
 {	
-	vec4 backgroundColor = vec4(0.16, 0.16, 0.16, 1);
-	vec2 uv = UV;
+	float4 backgroundColor = float4(0.16, 0.16, 0.16, 1);
+	float2 uv = UV;
 	uv.y = 1.0f - uv.y;
 	
-	vec2 coord = UVToFuncSpaceCoord(uv);
+	float2 coord = UVToFuncSpaceCoord(uv);
 	
-	vec4 finalColor = backgroundColor;
+	float4 finalColor = backgroundColor;
 	
-	vec2 screenSize = 1.0f / SCREEN_PIXEL_SIZE;
+	float2 screenSize = 1.0f / SCREEN_PIXEL_SIZE;
 	
-	finalColor = ApplyGridLines(finalColor, vec4(0.25, 0.25, 0.25, 1), coord, screenSize, _GridLineInterval.x, 2);
-	finalColor = ApplyGridLines(finalColor, vec4(0.45, 0.45, 0.45, 1), coord, screenSize, _GridLineInterval.y, 4);
-	finalColor = ApplyHorizontalLine(finalColor, vec4(0.65, 0.65, 0.65, 1), coord, 0.0, 4);
-	finalColor = ApplyVerticalLine(finalColor, vec4(0.65, 0.65, 0.65, 1), coord, 0.0, 4);
-	finalColor = ApplyFunctionGraph_1(finalColor, _Color1, coord);
-	finalColor = ApplyFunctionGraph_2(finalColor, _Color2, coord);
-	finalColor = ApplyFunctionGraph_3(finalColor, _Color3, coord);
-	finalColor = ApplyFunctionGraph_4(finalColor, _Color4, coord);
-	finalColor = ApplyFunctionGraph_5(finalColor, _Color5, coord);
-	finalColor = ApplyFunctionGraph_6(finalColor, _Color6, coord);
+	finalColor = ApplyGridLines(finalColor, float4(0.25, 0.25, 0.25, 1), coord, screenSize, _GridLineInterval.x, 2);
+	finalColor = ApplyGridLines(finalColor, float4(0.45, 0.45, 0.45, 1), coord, screenSize, _GridLineInterval.y, 4);
+	finalColor = ApplyHorizontalLine(finalColor, float4(0.65, 0.65, 0.65, 1), coord, 0.0, 4);
+	finalColor = ApplyVerticalLine(finalColor, float4(0.65, 0.65, 0.65, 1), coord, 0.0, 4);
+	finalColor = AppyFunctionGraphs(finalColor, coord);
 	finalColor.a = 1.0f;
 	COLOR = finalColor;
 }
