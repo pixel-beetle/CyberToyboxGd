@@ -15,8 +15,16 @@ var m_ColorPickerButton : ColorPickerButton
 var m_CodeEdit : CodeEdit
 var SyntaxHighligherInstance : SyntaxHighlighter
 
-signal color_changed(color: Color)
-signal text_changed(text: String)
+signal text_changed(textEdit: FunctionInputEdit, index: int, text: String)
+
+var m_IsContentValid : bool
+var IsContentValid:
+	get:
+		return m_IsContentValid
+
+var Content:
+	get:
+		return m_CodeEdit.get_text()
 
 func _ready():
 	m_ColorPickerButton = $HBox/ColorPickerButton
@@ -28,9 +36,16 @@ func _ready():
 	m_CodeEdit.text_changed.connect(_on_text_changed)
 
 func _on_text_changed():
-	text_changed.emit(Index, m_CodeEdit.get_text())
+	text_changed.emit(self, Index, m_CodeEdit.get_text())
 	
 func _exit_tree() -> void:
 	if SyntaxHighligherInstance != null:
 		m_CodeEdit.set_syntax_highlighter(null)
 		SyntaxHighligherInstance = null
+		
+func MarkContentValid(valid: bool) -> void:
+	m_IsContentValid = valid
+	if valid:
+		m_ColorPickerButton.color = DefaultColor
+	else:
+		m_ColorPickerButton.color = Color(1, 0, 0)

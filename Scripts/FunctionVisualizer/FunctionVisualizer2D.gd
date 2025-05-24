@@ -79,23 +79,17 @@ func InitializeParamatersIfNeeded() -> void:
 			tryCast.text_changed.connect(_on_FunctionInputEdit_text_changed);
 	m_ParamsInitialized = true;
 
-func _on_FunctionInputEdit_text_changed(index :int, content : String) -> void:
-	m_DummyShaderForCompileCheck.code = """
-	shader_type canvas_item;
-	uniform vec4 _Color;
-	float fx(float x){
-		return <BODY>;
-	}
-	void fragment() {
-		float f = fx(0.0);
-		COLOR = _Color;
-	}
-	""".replace("<BODY>", content);
-	if m_DummyShaderForCompileCheck.get_shader_uniform_list().is_empty():
+func _on_FunctionInputEdit_text_changed(textEdit: FunctionInputEdit, index :int, content : String) -> void:
+	if RecompileForFunctionTextEditValidation(index, content):
 		print("Invalid Input %s" % content)
+		textEdit.MarkContentValid(true);
 	else:
 		print("Valid Input %s" % content)
+		textEdit.MarkContentValid(false);
 	print("FunctionInputEdit_text_changed: ", index, content)
+	var shaderContent: String = GenerateDynamicFunctionShaderCode()
+	print("Generated Shader Code: ", shaderContent)
+	m_DynamicShader.code = shaderContent
 
 func _on_drag_moved(canvasDelta: Vector2) -> void:
 	var funcCoordDelta := canvasDelta;
@@ -124,11 +118,11 @@ func InitializeIfNeeded() -> void:
 	InitializeParamatersIfNeeded();
 	if not m_DummyShaderForCompileCheck:
 		m_DummyShaderForCompileCheck = Shader.new();
-		m_DummyShaderForCompileCheck.code = SHADER_CODE_TEMPLATE_DUMMY
+		m_DummyShaderForCompileCheck.code = SHADER_CODE_COMPILE_DUMMY_DEFAULT
 		
 	if not m_DynamicShader:
 		m_DynamicShader = Shader.new();
-		m_DynamicShader.code = SHADER_CODE_TEMPLATE;
+		m_DynamicShader.code = SHADER_CODE_TEMPLATE.replace("//<DynamicGeneratedFunctions>", SHADER_DYNAMIC_FUNCTIONS_DEFAULT);
 		
 	if not m_RenderMaterial:
 		m_RenderMaterial = ShaderMaterial.new();
@@ -172,7 +166,59 @@ func UpdateMaterialProperties() -> void:
 	m_RenderMaterial.set_shader_parameter("_FuncUnitsPerPixel", m_FuncUnitsPerPixel);
 	var gridLineIntervals : Vector2 = GetGridLineIntervals();
 	m_RenderMaterial.set_shader_parameter("_GridLineInterval", gridLineIntervals);
+
 	
+func RecompileForFunctionTextEditValidation(index :int, content : String) -> bool: 
+	m_DummyShaderForCompileCheck.code = """
+		shader_type canvas_item;
+		uniform vec4 _Color;
+		float fx(float x, float t){
+			return <BODY>;
+		}
+		void fragment() {
+			float f = fx(0.0, 0.0);
+			COLOR = _Color;
+		}
+		""".replace("<BODY>", content);
+	return not m_DummyShaderForCompileCheck.get_shader_uniform_list().is_empty()
+
+
+func GenerateDynamicFunctionShaderCode() -> String:
+	var uniformAndFunction_Define : String = ""
+	var appyFunctionGraphs_Body : String = ""
+	for input in m_FunctionInputEdits:
+		if not input.IsContentValid:
+			continue;
+		uniformAndFunction_Define += """
+			
+			uniform float4 _Color<i>;
+			float f<i>(float x, float t)
+			{
+				return <c>;
+			}
+			
+			DECLARE_FUNC_GetLerpFactor(<i>)
+			
+			DECLARE_FUNC_ApplyFunctionGraph(<i>)
+			
+			""".replace("<i>", str(input.Index)).replace("<c>", input.Content);
+		appyFunctionGraphs_Body += """
+			
+			finalColor = ApplyFunctionGraph_<i>(finalColor, _Color<i>, coord);
+			
+			""".replace("<i>", str(input.Index));
+	var dynamicContent: String = uniformAndFunction_Define + """
+	
+	float4 AppyFunctionGraphs(float4 inColor, float2 coord)
+	{
+		float4 finalColor = inColor;
+		<BODY>
+		return finalColor;
+	}
+
+	""".replace("<BODY>", appyFunctionGraphs_Body);
+	return SHADER_CODE_TEMPLATE.replace("//<DynamicGeneratedFunctions>", dynamicContent);
+
 # Called every frame. 'delta' is the elapsed time since the previous frame.
 func _process(delta: float) -> void:
 	m_Time += delta;
@@ -189,13 +235,83 @@ func _exit_tree() -> void:
 	ReleaseResourcesIfNeeded();
 	queue_free();
 
-const SHADER_CODE_TEMPLATE_DUMMY :String = """
+const SHADER_CODE_COMPILE_DUMMY_DEFAULT :String = """
 shader_type canvas_item;
 uniform vec4 _Color;
 void fragment() {
 	COLOR = _Color;
 }
 """
+
+const SHADER_DYNAMIC_FUNCTIONS_DEFAULT : String = """
+
+uniform float4 _Color1;
+uniform float4 _Color2;
+uniform float4 _Color3;
+uniform float4 _Color4;
+uniform float4 _Color5;
+uniform float4 _Color6;
+
+float f1(float x, float t)
+{
+	return x * x;
+}
+
+float f2(float x, float t)
+{
+	return x * x * x;
+}
+
+float f3(float x, float t)
+{
+	return smoothstep(0,1,x);
+}
+
+float f4(float x, float t)
+{
+	return sin(x + t);
+}
+
+float f5(float x, float t)
+{
+	return x;
+}
+
+float f6(float x, float t)
+{
+	return abs(x) < 1e-6f ? 0.0f : 1.0f / x;
+}
+
+DECLARE_FUNC_GetLerpFactor(1)
+DECLARE_FUNC_GetLerpFactor(2)
+DECLARE_FUNC_GetLerpFactor(3)
+DECLARE_FUNC_GetLerpFactor(4)
+DECLARE_FUNC_GetLerpFactor(5)
+DECLARE_FUNC_GetLerpFactor(6)
+
+DECLARE_FUNC_ApplyFunctionGraph(1)
+DECLARE_FUNC_ApplyFunctionGraph(2)
+DECLARE_FUNC_ApplyFunctionGraph(3)
+DECLARE_FUNC_ApplyFunctionGraph(4)
+DECLARE_FUNC_ApplyFunctionGraph(5)
+DECLARE_FUNC_ApplyFunctionGraph(6)
+
+float4 AppyFunctionGraphs(float4 inColor, float2 coord)
+{
+	float4 finalColor = inColor;
+	finalColor = ApplyFunctionGraph_1(finalColor, _Color1, coord);
+	finalColor = ApplyFunctionGraph_2(finalColor, _Color2, coord);
+	finalColor = ApplyFunctionGraph_3(finalColor, _Color3, coord);
+	finalColor = ApplyFunctionGraph_4(finalColor, _Color4, coord);
+	finalColor = ApplyFunctionGraph_5(finalColor, _Color5, coord);
+	finalColor = ApplyFunctionGraph_6(finalColor, _Color6, coord);
+	return finalColor;
+}
+
+
+"""
+
+
 
 const SHADER_CODE_TEMPLATE : String = """
 shader_type canvas_item;
@@ -271,7 +387,7 @@ float2 FuncSpaceCoordToScreenPos(float2 coord, float2 screenSize)
 	for (int i = 0; i < steps; ++i) \
 	{ \
 		float x = xMin + float(i) * dx; \
-		float y = f##index(x); \
+		float y = f##index(x, _Time); \
 		float dist = length(coord - vec2(x, y)); \
 		minDist = min(minDist, dist); \
 	} \
@@ -281,9 +397,9 @@ float2 FuncSpaceCoordToScreenPos(float2 coord, float2 screenSize)
 
 #define DECLARE_FUNC_ApplyFunctionGraph(index) float4 ApplyFunctionGraph_##index(float4 inColor, float4 funcGraphColor, float2 coord) { \
 	float epsilon = 0.000001f; \
-	float funcValue 	 = f##index(coord.x); \
-	float funcValueLeft  = f##index(coord.x - epsilon); \
-	float funcValueRight = f##index(coord.x + epsilon); \
+	float funcValue 	 = f##index(coord.x, _Time); \
+	float funcValueLeft  = f##index(coord.x - epsilon, _Time); \
+	float funcValueRight = f##index(coord.x + epsilon, _Time); \
 	float slope = (funcValueRight - funcValueLeft) / epsilon; \
 	float factor = GetLerpFactor##index(coord, funcValue, slope); \
 	return lerp(inColor, funcGraphColor, factor); \
@@ -291,70 +407,6 @@ float2 FuncSpaceCoordToScreenPos(float2 coord, float2 screenSize)
 
 
 //<DynamicGeneratedFunctions>
-uniform float4 _Color1;
-uniform float4 _Color2;
-uniform float4 _Color3;
-uniform float4 _Color4;
-uniform float4 _Color5;
-uniform float4 _Color6;
-
-float f1(float x)
-{
-	return x * x;
-}
-
-float f2(float x)
-{
-	return x * x * x;
-}
-
-float f3(float x)
-{
-	return smoothstep(0,1,x);
-}
-
-float f4(float x)
-{
-	return sin(x + _Time);
-}
-
-float f5(float x)
-{
-	return x;
-}
-
-float f6(float x)
-{
-	return abs(x) < 1e-6f ? 0.0f : 1.0f / x;
-}
-
-DECLARE_FUNC_GetLerpFactor(1)
-DECLARE_FUNC_GetLerpFactor(2)
-DECLARE_FUNC_GetLerpFactor(3)
-DECLARE_FUNC_GetLerpFactor(4)
-DECLARE_FUNC_GetLerpFactor(5)
-DECLARE_FUNC_GetLerpFactor(6)
-
-DECLARE_FUNC_ApplyFunctionGraph(1)
-DECLARE_FUNC_ApplyFunctionGraph(2)
-DECLARE_FUNC_ApplyFunctionGraph(3)
-DECLARE_FUNC_ApplyFunctionGraph(4)
-DECLARE_FUNC_ApplyFunctionGraph(5)
-DECLARE_FUNC_ApplyFunctionGraph(6)
-
-float4 AppyFunctionGraphs(float4 inColor, float2 coord)
-{
-	float4 finalColor = inColor;
-	finalColor = ApplyFunctionGraph_1(finalColor, _Color1, coord);
-	finalColor = ApplyFunctionGraph_2(finalColor, _Color2, coord);
-	finalColor = ApplyFunctionGraph_3(finalColor, _Color3, coord);
-	finalColor = ApplyFunctionGraph_4(finalColor, _Color4, coord);
-	finalColor = ApplyFunctionGraph_5(finalColor, _Color5, coord);
-	finalColor = ApplyFunctionGraph_6(finalColor, _Color6, coord);
-	return finalColor;
-}
-
-//</DynamicGeneratedFunctions>
 
 void vertex()
 {
