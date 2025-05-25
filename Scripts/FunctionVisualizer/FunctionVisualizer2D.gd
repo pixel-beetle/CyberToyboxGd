@@ -7,6 +7,7 @@ var m_RenderMaterial : ShaderMaterial;
 var m_DynamicShader : Shader;
 var m_DummyShaderForCompileCheck : Shader;
 var m_Time : float = 0.0;
+var m_IsPausingTime : bool = false
 
 var m_FuncUnitsPerPixel : float = 0.01;
 var m_FunctionCoordBoundsMin : Vector2 = Vector2(-2, -2);
@@ -18,9 +19,28 @@ var m_MousePos : Vector2 = Vector2(0, 0);
 var m_FunctionInputEdits : Array[FunctionInputEdit] = [];
 var m_ParamsInitialized : bool = false;
 
+
+const MaxTime := 1000.0
+
+func SetCurrentTime(t: float) -> void:
+	m_Time = clamp(t, 0.0, MaxTime)
+
 func GetCurrentTime() -> float:
 	return m_Time;
 
+func ResetTime() -> void:
+	m_Time = 0.0;
+	m_IsPausingTime = false;
+
+func PauseTime() -> void:
+	m_IsPausingTime = true;	
+
+func ResumeTime() -> void:
+	m_IsPausingTime = false;	
+	
+func IsPausingTime() -> bool:
+	return m_IsPausingTime;
+	
 func GetFunctionCoordBoundsMin() -> Vector2:
 	return m_FunctionCoordBoundsMin;
 	
@@ -69,6 +89,8 @@ func InitializeParamatersIfNeeded() -> void:
 	m_FuncUnitsPerPixel = 0.005;
 	m_MousePos = Vector2(0, 0);
 	m_ZoomLevel = 1.0;
+	var screenSize := DisplayServer.screen_get_size()
+	var screenSizeF := Vector2(screenSize.x, screenSize.y)
 	m_FunctionCoordBoundsMin = DisplayItem.size * Vector2(-0.5, -0.5) * m_FuncUnitsPerPixel;
 	m_FunctionCoordBoundsMax = DisplayItem.size * Vector2(0.5, 0.5) * m_FuncUnitsPerPixel;
 	var children := find_children("","FunctionInputEdit",true,true);
@@ -221,8 +243,9 @@ func GenerateDynamicFunctionShaderCode() -> String:
 
 # Called every frame. 'delta' is the elapsed time since the previous frame.
 func _process(delta: float) -> void:
-	m_Time += delta;
-	if m_Time > 10000:
+	if not IsPausingTime():
+		m_Time += delta;
+	if m_Time > MaxTime:
 		m_Time = 0.0;
 	InitializeIfNeeded();
 	UpdateMaterialProperties();

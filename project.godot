@@ -13,6 +13,10 @@ config_version=5
 config/name="CyberToyboxGd"
 run/main_scene="uid://bfde3vpnmspyc"
 config/features=PackedStringArray("4.5", "GL Compatibility")
+boot_splash/bg_color=Color(0.00351917, 0.00351917, 0.00351916, 1)
+boot_splash/show_image=false
+boot_splash/fullsize=false
+boot_splash/use_filter=false
 config/icon="res://icon.svg"
 
 [display]

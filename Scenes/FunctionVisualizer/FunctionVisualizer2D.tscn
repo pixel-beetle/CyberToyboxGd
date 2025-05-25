@@ -1,10 +1,11 @@
-[gd_scene load_steps=9 format=3 uid="uid://bfde3vpnmspyc"]
+[gd_scene load_steps=10 format=3 uid="uid://bfde3vpnmspyc"]
 
 [ext_resource type="Script" uid="uid://b44qcq5mv7118" path="res://Scripts/FunctionVisualizer/FunctionVisualizer2D.gd" id="1_3wf0p"]
 [ext_resource type="Material" uid="uid://xjq4pcynnlhb" path="res://Scripts/FunctionVisualizer/new_shader_material.material" id="1_ig1e0"]
 [ext_resource type="PackedScene" uid="uid://ct4rmrtcgc8lc" path="res://Scenes/FunctionVisualizer/FunctionInput.tscn" id="2_w6rve"]
 [ext_resource type="Script" uid="uid://k0eh8h78swwy" path="res://Scripts/FunctionVisualizer/FunctionVisualizer2DDisplayCanvas.gd" id="3_wjtke"]
 [ext_resource type="Script" uid="uid://d2yvjxowkjm7e" path="res://Scripts/FunctionVisualizer/FunctionVisualizer2DInfoLabels.gd" id="4_eodmu"]
+[ext_resource type="Script" uid="uid://butrkcgl3jlkw" path="res://Scripts/FunctionVisualizer/FunctionVisualizerTimeControlView.gd" id="6_q0q4c"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_w6rve"]
 content_margin_left = 0.0
@@ -42,7 +43,7 @@ grow_vertical = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
 script = ExtResource("1_3wf0p")
-DisplayItem = NodePath("Background/VBoxContainer/Body2/VisualizeDisplay")
+DisplayItem = NodePath("Background/VBoxContainer/Body2/FunctionCanvasView")
 
 [node name="Background" type="Panel" parent="."]
 layout_mode = 1
@@ -93,7 +94,7 @@ vertical_alignment = 1
 layout_mode = 2
 size_flags_vertical = 3
 
-[node name="VisualizeDisplay" type="TextureRect" parent="Background/VBoxContainer/Body2"]
+[node name="FunctionCanvasView" type="TextureRect" parent="Background/VBoxContainer/Body2"]
 material = ExtResource("1_ig1e0")
 layout_mode = 1
 anchors_preset = 15
@@ -268,3 +269,64 @@ layout_mode = 2
 [node name="Button4" type="Button" parent="Background/VBoxContainer/Body2/FoldableContainer/Functions/FuncQuickButtonBox/HFlowContainer2"]
 custom_minimum_size = Vector2(80, 35)
 layout_mode = 2
+
+[node name="BottomControlPanel" type="Control" parent="Background/VBoxContainer/Body2" node_paths=PackedStringArray("FunctionVisualizer", "TimeTextLabel", "TimeSlider", "TimeResetButton", "TimePauseButton")]
+layout_mode = 1
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -473.001
+offset_top = -109.0
+offset_right = 473.999
+offset_bottom = -38.0
+grow_horizontal = 2
+grow_vertical = 0
+script = ExtResource("6_q0q4c")
+FunctionVisualizer = NodePath("../../../..")
+TimeTextLabel = NodePath("HBoxContainer/Label")
+TimeSlider = NodePath("HBoxContainer/HSlider")
+TimeResetButton = NodePath("HBoxContainer/TimeResetButton")
+TimePauseButton = NodePath("HBoxContainer/TimePauseButton")
+
+[node name="HBoxContainer" type="HBoxContainer" parent="Background/VBoxContainer/Body2/BottomControlPanel"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 8
+alignment = 1
+
+[node name="Label" type="Label" parent="Background/VBoxContainer/Body2/BottomControlPanel/HBoxContainer"]
+custom_minimum_size = Vector2(150, 0)
+layout_mode = 2
+size_flags_horizontal = 0
+size_flags_vertical = 1
+theme_override_font_sizes/font_size = 24
+text = "t = 0.00"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="HSlider" type="HSlider" parent="Background/VBoxContainer/Body2/BottomControlPanel/HBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 1
+max_value = 1000.0
+step = 0.01
+
+[node name="TimePauseButton" type="Button" parent="Background/VBoxContainer/Body2/BottomControlPanel/HBoxContainer"]
+custom_minimum_size = Vector2(90, 45)
+layout_mode = 2
+size_flags_horizontal = 4
+size_flags_vertical = 4
+text = "Pause"
+
+[node name="TimeResetButton" type="Button" parent="Background/VBoxContainer/Body2/BottomControlPanel/HBoxContainer"]
+custom_minimum_size = Vector2(90, 45)
+layout_mode = 2
+size_flags_horizontal = 4
+size_flags_vertical = 4
+text = "Reset"
