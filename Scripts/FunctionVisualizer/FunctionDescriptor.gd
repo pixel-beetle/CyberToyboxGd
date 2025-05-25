@@ -3,7 +3,7 @@ class_name FunctionDescriptor
 var Category: String
 var ReturnType: String
 var Name: String
-var ParamList: Array[FunctionParameter]
+var ParamList: Array[FunctionParameter] = []
 var CustomBodyContent: String
 var IsBuiltin: bool
 
@@ -12,6 +12,15 @@ func GetFunctionSignature() -> String:
 	var result: String = ReturnType + " " + Name + "(";
 	for i in range(ParamList.size()):
 		result += ParamList[i]._to_string();
+		if i < ParamList.size() - 1:
+			result += ", ";
+	result += ")";
+	return result;
+
+func GetFunctionCallPattern() -> String:
+	var result: String = Name + "(";
+	for i in range(ParamList.size()):
+		result += ParamList[i].Name;
 		if i < ParamList.size() - 1:
 			result += ", ";
 	result += ")";
@@ -30,7 +39,7 @@ static func Buitin(return_type: String, name: String, param_list: Array[Function
 	result.ReturnType = return_type;
 	result.Name = name;
 	result.ParamList = param_list;
-	result.IsGLSLBuiltin = true;
+	result.IsBuiltin = true;
 	return result;
 
 
@@ -38,8 +47,9 @@ static func Buitin_AllFloats(name: String, param_list: Array[String]) -> Functio
 	var result = FunctionDescriptor.new();
 	result.ReturnType = "float";
 	result.Name = name;
-	result.ParamList = param_list.map(func(x): FunctionParameter.new("float", x));
-	result.IsGLSLBuiltin = true;
+	for param in param_list:
+		result.ParamList.append(FunctionParameter.new("float", param));
+	result.IsBuiltin = true;
 	return result;
 
 
@@ -47,14 +57,17 @@ static func Custom_AllFloats(name: String, param_list: Array[String], body_conte
 	var result = FunctionDescriptor.new();
 	result.ReturnType = "float";
 	result.Name = name;
-	result.ParamList = param_list.map(func(x): FunctionParameter.new("float", x));
-	result.IsGLSLBuiltin = false;
+	for param in param_list:
+		result.ParamList.append(FunctionParameter.new("float", param));
+	result.IsBuiltin = false;
 	result.CustomBodyContent = body_content;
 	return result;
 
+
 func MarkCategory(category: String) -> FunctionDescriptor:
-	Category = category	
+	Category = category
 	return self;
+
 
 class FunctionParameter:
 	var Type: String

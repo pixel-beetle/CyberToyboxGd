@@ -1,7 +1,13 @@
-[gd_scene load_steps=3 format=3 uid="uid://ct4rmrtcgc8lc"]
+[gd_scene load_steps=4 format=3 uid="uid://ct4rmrtcgc8lc"]
 
 [ext_resource type="CodeHighlighter" uid="uid://c6afq5wnc6tjd" path="res://UITheme/FunctionInputHighlighter_Dark.tres" id="1_ahr3o"]
 [ext_resource type="Script" uid="uid://cuerbvlgvphvn" path="res://Scripts/FunctionVisualizer/FunctionInputEdit.gd" id="1_v2tsw"]
+
+[sub_resource type="CodeHighlighter" id="CodeHighlighter_v2tsw"]
+number_color = Color(0.803692, 0.814657, 0.959344, 1)
+symbol_color = Color(0.495631, 0.781904, 0.913588, 1)
+function_color = Color(0.527071, 0.848262, 0.501681, 1)
+member_variable_color = Color(0.647035, 0.680945, 0.91827, 1)
 
 [node name="FunctionInput" type="Control"]
 custom_minimum_size = Vector2(0, 30)
@@ -9,6 +15,8 @@ layout_mode = 3
 anchors_preset = 10
 anchor_right = 1.0
 grow_horizontal = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
 script = ExtResource("1_v2tsw")
 SyntaxHighligherResourceTemplate = ExtResource("1_ahr3o")
 
@@ -24,7 +32,8 @@ grow_vertical = 2
 custom_minimum_size = Vector2(30, 30)
 layout_mode = 2
 size_flags_horizontal = 0
-color = Color(0.644473, 0.621459, 1, 1)
+size_flags_vertical = 0
+color = Color(0.5, 0.5, 0.5, 1)
 
 [node name="RichTextLabel" type="RichTextLabel" parent="HBox"]
 custom_minimum_size = Vector2(90, 0)
@@ -34,15 +43,17 @@ theme_override_font_sizes/italics_font_size = 18
 theme_override_font_sizes/mono_font_size = 18
 theme_override_font_sizes/normal_font_size = 18
 theme_override_font_sizes/bold_font_size = 18
-text = "f(x, t)"
+text = "f0(x, t) = "
 horizontal_alignment = 1
-vertical_alignment = 1
 
 [node name="CodeEdit" type="CodeEdit" parent="HBox"]
 layout_mode = 2
 size_flags_horizontal = 3
-syntax_highlighter = ExtResource("1_ahr3o")
+syntax_highlighter = SubResource("CodeHighlighter_v2tsw")
 highlight_all_occurrences = true
+symbol_tooltip_on_hover = true
+code_completion_enabled = true
+code_completion_prefixes = Array[String]([".", "a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z", "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z"])
 auto_brace_completion_enabled = true
 auto_brace_completion_highlight_matching = true
 

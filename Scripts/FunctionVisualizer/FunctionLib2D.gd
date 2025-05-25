@@ -3,7 +3,7 @@ const Category_Arithmetic := "Arithmetic";
 const Category_Trignometry := "Trignometry";
 const Category_Trancendent := "Trancendent";
 const Category_Power := "Power";
-static var GLSLBuiltinFunctions : Array[FunctionDescriptor] = [
+static var BuiltinFunctions : Array[FunctionDescriptor] = [
 	FunctionDescriptor.Buitin_AllFloats("sin", ["x"]).MarkCategory(Category_Trignometry),
 	FunctionDescriptor.Buitin_AllFloats("cos", ["x"]).MarkCategory(Category_Trignometry),
 	FunctionDescriptor.Buitin_AllFloats("tan", ["x"]).MarkCategory(Category_Trignometry),
@@ -55,7 +55,3 @@ static var GLSLBuiltinFunctions : Array[FunctionDescriptor] = [
 	
 	
 ]
-
-
-
-

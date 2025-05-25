@@ -197,31 +197,37 @@ size_flags_vertical = 3
 [node name="FunctionInput" parent="Background/VBoxContainer/Body2/FoldableContainer/Functions/PanelContainer/VBox/ScrollContainer/MarginContainer/FunctionTextInputs" instance=ExtResource("2_w6rve")]
 layout_mode = 2
 Index = 1
+FuncLabelTemplate = "f<i>(x, t) = "
 
 [node name="FunctionInput2" parent="Background/VBoxContainer/Body2/FoldableContainer/Functions/PanelContainer/VBox/ScrollContainer/MarginContainer/FunctionTextInputs" instance=ExtResource("2_w6rve")]
 layout_mode = 2
 Index = 2
 DefaultColor = Color(0.93383, 0.523216, 0.915324, 1)
+FuncLabelTemplate = "f<i>(x, t) = "
 
 [node name="FunctionInput3" parent="Background/VBoxContainer/Body2/FoldableContainer/Functions/PanelContainer/VBox/ScrollContainer/MarginContainer/FunctionTextInputs" instance=ExtResource("2_w6rve")]
 layout_mode = 2
 Index = 3
 DefaultColor = Color(0.361382, 0.575835, 0.935612, 1)
+FuncLabelTemplate = "f<i>(x, t) = "
 
 [node name="FunctionInput4" parent="Background/VBoxContainer/Body2/FoldableContainer/Functions/PanelContainer/VBox/ScrollContainer/MarginContainer/FunctionTextInputs" instance=ExtResource("2_w6rve")]
 layout_mode = 2
 Index = 4
 DefaultColor = Color(0.74572, 0.612315, 0.379667, 1)
+FuncLabelTemplate = "f<i>(x, t) = "
 
 [node name="FunctionInput5" parent="Background/VBoxContainer/Body2/FoldableContainer/Functions/PanelContainer/VBox/ScrollContainer/MarginContainer/FunctionTextInputs" instance=ExtResource("2_w6rve")]
 layout_mode = 2
 Index = 5
 DefaultColor = Color(0.311299, 0.766342, 0.701705, 1)
+FuncLabelTemplate = "f<i>(x, t) = "
 
 [node name="FunctionInput6" parent="Background/VBoxContainer/Body2/FoldableContainer/Functions/PanelContainer/VBox/ScrollContainer/MarginContainer/FunctionTextInputs" instance=ExtResource("2_w6rve")]
 layout_mode = 2
 Index = 6
 DefaultColor = Color(0.48365, 0.396879, 0.922465, 1)
+FuncLabelTemplate = "f<i>(x, t) = "
 
 [node name="FuncQuickButtonBox" type="HFlowContainer" parent="Background/VBoxContainer/Body2/FoldableContainer/Functions"]
 layout_mode = 2
