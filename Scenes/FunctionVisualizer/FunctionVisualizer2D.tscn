@@ -151,10 +151,10 @@ layout_mode = 2
 text = "+"
 
 [node name="ScrollContainer" type="ScrollContainer" parent="Background/VBoxContainer/Body2/FoldableContainer/Functions/PanelContainer/VBox"]
-clip_contents = false
 custom_minimum_size = Vector2(0, 250)
 layout_mode = 2
 size_flags_vertical = 3
+follow_focus = true
 horizontal_scroll_mode = 0
 
 [node name="MarginContainer" type="MarginContainer" parent="Background/VBoxContainer/Body2/FoldableContainer/Functions/PanelContainer/VBox/ScrollContainer"]
