@@ -1,5 +1,5 @@
 @tool
-extends Node
+extends Control
 class_name FunctionInputEdit
 
 @export
@@ -20,6 +20,8 @@ var m_CodeEdit: CodeEdit
 var SyntaxHighligherInstance: SyntaxHighlighter
 signal text_changed(textEdit: FunctionInputEdit, index: int, text: String)
 var m_IsContentValid: bool
+
+var m_HeightBeforeFocus : float
 
 var IsContentValid:
 	get:
@@ -49,6 +51,8 @@ func _ready():
 		"O", "P", "Q", "R", "S", "T", 
 		"U", "V", "W", "X", "Y", "Z"
 	]
+	m_CodeEdit.focus_entered.connect(_on_focus_entered)
+	m_CodeEdit.focus_exited.connect(_on_focus_exited)
 	m_CodeEdit.code_completion_requested.connect(_on_code_completion_requested)
 
 func _on_text_changed():
@@ -60,9 +64,18 @@ func _on_code_completion_requested():
 	var word := m_CodeEdit.get_word_under_caret()
 	for function in allFunctions:
 		if function.Name.begins_with(word):
-			m_CodeEdit.add_code_completion_option(CodeEdit.KIND_FUNCTION, function.Name, function.GetFunctionCallPattern())
+			var functionCall := function.GetFunctionCallPattern()
+			m_CodeEdit.add_code_completion_option(CodeEdit.KIND_FUNCTION, functionCall, functionCall)
 	m_CodeEdit.update_code_completion_options(false)
 
+func _on_focus_entered():
+	var customMinSize := self.custom_minimum_size
+	m_HeightBeforeFocus = customMinSize.y
+	self.custom_minimum_size = Vector2(customMinSize.x, m_HeightBeforeFocus + 150)
+
+func _on_focus_exited():
+	var customMinSize := self.custom_minimum_size
+	self.custom_minimum_size = Vector2(customMinSize.x, m_HeightBeforeFocus)
 
 func _exit_tree() -> void:
 	if SyntaxHighligherInstance != null:
