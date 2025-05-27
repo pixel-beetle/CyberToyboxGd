@@ -22,6 +22,8 @@ signal text_changed(textEdit: FunctionInputEdit, index: int, text: String)
 var m_IsContentValid: bool
 
 var m_HeightBeforeFocus : float
+var m_DefaultLineBackGroundColor: Color
+const s_ErrorLineColor: Color = Color(0.78039217, 0.36078432, 0.36078432)
 
 var IsContentValid:
 	get:
@@ -30,13 +32,15 @@ var IsContentValid:
 var Content:
 	get:
 		return m_CodeEdit.get_text()
-
+	set(value):
+		m_CodeEdit.set_text(value)
 
 func _ready():
 	m_FuncNameLabel.text = FuncLabelTemplate.replace("<i>", str(Index))
 	m_ColorPickerButton = $HBox/ColorPickerButton
 	m_ColorPickerButton.color = DefaultColor
 	m_CodeEdit = $HBox/CodeEdit
+	m_DefaultLineBackGroundColor = m_CodeEdit.get_line_background_color(0)
 	if SyntaxHighligherResourceTemplate != null:
 		SyntaxHighligherInstance = SyntaxHighligherResourceTemplate.duplicate()
 		m_CodeEdit.set_syntax_highlighter(SyntaxHighligherInstance)
@@ -61,7 +65,7 @@ func _on_text_changed():
 
 func _on_code_completion_requested():
 	var allFunctions := FunctionLib2D.BuiltinFunctions
-	var word := m_CodeEdit.get_word_under_caret()
+	var word := m_CodeEdit.get_word_under_caret(0)
 	for function in allFunctions:
 		if function.Name.begins_with(word):
 			var functionCall := function.GetFunctionCallPattern()
@@ -71,7 +75,7 @@ func _on_code_completion_requested():
 func _on_focus_entered():
 	var customMinSize := self.custom_minimum_size
 	m_HeightBeforeFocus = customMinSize.y
-	self.custom_minimum_size = Vector2(customMinSize.x, m_HeightBeforeFocus + 150)
+	self.custom_minimum_size = Vector2(customMinSize.x, m_HeightBeforeFocus + 120)
 
 func _on_focus_exited():
 	var customMinSize := self.custom_minimum_size
@@ -85,7 +89,10 @@ func _exit_tree() -> void:
 
 func MarkContentValid(valid: bool) -> void:
 	m_IsContentValid = valid
-	if valid:
-		m_ColorPickerButton.color = DefaultColor
+	# Make label red if invalid
+	if not valid:
+		for i in range(m_CodeEdit.get_line_count()):
+			m_CodeEdit.set_line_background_color(i, s_ErrorLineColor)
 	else:
-		m_ColorPickerButton.color = Color(1, 0, 0)
+		for i in range(m_CodeEdit.get_line_count()):
+			m_CodeEdit.set_line_background_color(i, m_DefaultLineBackGroundColor)

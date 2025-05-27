@@ -99,20 +99,33 @@ func InitializeParamatersIfNeeded() -> void:
 		if tryCast != null:
 			m_FunctionInputEdits.append(tryCast);
 			tryCast.text_changed.connect(_on_FunctionInputEdit_text_changed);
+	SetFunctionInputs(FunctionPreset.DefaultInputs);
 	m_ParamsInitialized = true;
 
+
 func _on_FunctionInputEdit_text_changed(textEdit: FunctionInputEdit, index :int, content : String) -> void:
-	if RecompileForFunctionTextEditValidation(index, content):
-		print("Invalid Input %s" % content)
+	if RecompileForFunctionTextEditValidation(content):
 		textEdit.MarkContentValid(true);
 	else:
-		print("Valid Input %s" % content)
 		textEdit.MarkContentValid(false);
-	print("FunctionInputEdit_text_changed: ", index, content)
+	UpdateDynamicShaderCode()
+
+func UpdateDynamicShaderCode():
 	var shaderContent: String = GenerateDynamicFunctionShaderCode()
-	print("Generated Shader Code: ", shaderContent)
 	m_DynamicShader.code = shaderContent
 
+func SetFunctionInputs(inputs : Array[String]):
+	for i in range(len(inputs)):
+		if i >= len(m_FunctionInputEdits):
+			break;
+		var textEdit := m_FunctionInputEdits[i];
+		textEdit.Content = inputs[i];
+		if RecompileForFunctionTextEditValidation(inputs[i]):
+			textEdit.MarkContentValid(true);
+		else:
+			textEdit.MarkContentValid(false);
+	UpdateDynamicShaderCode();
+			
 func _on_drag_moved(canvasDelta: Vector2) -> void:
 	var funcCoordDelta := canvasDelta;
 	funcCoordDelta.y = -funcCoordDelta.y;
@@ -137,18 +150,21 @@ func _on_mouse_position_got(mousePos: Vector2) -> void:
 	m_MousePos = mousePos;
 	
 func InitializeIfNeeded() -> void:
-	InitializeParamatersIfNeeded();
 	if not m_DummyShaderForCompileCheck:
 		m_DummyShaderForCompileCheck = Shader.new();
 		m_DummyShaderForCompileCheck.code = SHADER_CODE_COMPILE_DUMMY_DEFAULT
 		
 	if not m_DynamicShader:
 		m_DynamicShader = Shader.new();
-		m_DynamicShader.code = SHADER_CODE_TEMPLATE.replace("//<DynamicGeneratedFunctions>", SHADER_DYNAMIC_FUNCTIONS_DEFAULT);
+		m_DynamicShader.code = SHADER_CODE_TEMPLATE\
+				.replace("//<DynamicGeneratedFunctions>", SHADER_DYNAMIC_FUNCTIONS_DEFAULT)\
+				.replace("//<CommonDefines>", SHADER_CODE_COMMON_DEFINES)
 		
 	if not m_RenderMaterial:
 		m_RenderMaterial = ShaderMaterial.new();
 		m_RenderMaterial.shader = m_DynamicShader;
+	
+	InitializeParamatersIfNeeded();
 
 func ReleaseResourcesIfNeeded() -> void:
 	if m_RenderMaterial:
@@ -190,9 +206,10 @@ func UpdateMaterialProperties() -> void:
 	m_RenderMaterial.set_shader_parameter("_GridLineInterval", gridLineIntervals);
 
 	
-func RecompileForFunctionTextEditValidation(index :int, content : String) -> bool: 
+func RecompileForFunctionTextEditValidation(content : String) -> bool: 
 	m_DummyShaderForCompileCheck.code = """
 		shader_type canvas_item;
+		//<CommonDefines>
 		uniform vec4 _Color;
 		float fx(float x, float t){
 			return <BODY>;
@@ -201,7 +218,9 @@ func RecompileForFunctionTextEditValidation(index :int, content : String) -> boo
 			float f = fx(0.0, 0.0);
 			COLOR = _Color;
 		}
-		""".replace("<BODY>", content);
+		""".replace("<BODY>", content)\
+			.replace("//<CommonDefines>", SHADER_CODE_COMMON_DEFINES);
+	
 	return not m_DummyShaderForCompileCheck.get_shader_uniform_list().is_empty()
 
 
@@ -239,7 +258,9 @@ func GenerateDynamicFunctionShaderCode() -> String:
 	}
 
 	""".replace("<BODY>", appyFunctionGraphs_Body);
-	return SHADER_CODE_TEMPLATE.replace("//<DynamicGeneratedFunctions>", dynamicContent);
+	return SHADER_CODE_TEMPLATE\
+				.replace("//<DynamicGeneratedFunctions>", dynamicContent)\
+				.replace("//<CommonDefines>", SHADER_CODE_COMMON_DEFINES)
 
 # Called every frame. 'delta' is the elapsed time since the previous frame.
 func _process(delta: float) -> void:
@@ -334,11 +355,7 @@ float4 AppyFunctionGraphs(float4 inColor, float2 coord)
 
 """
 
-
-
-const SHADER_CODE_TEMPLATE : String = """
-shader_type canvas_item;
-
+const SHADER_CODE_COMMON_DEFINES : String = """
 #define float2 vec2
 #define float3 vec3
 #define float4 vec4
@@ -346,6 +363,13 @@ shader_type canvas_item;
 #define float4x4 mat4
 #define lerp mix
 
+"""
+
+
+const SHADER_CODE_TEMPLATE : String = """
+shader_type canvas_item;
+
+//<CommonDefines>
 
 uniform float _Time;
 uniform float4 _FunctionCoordBoundsMinMax;

@@ -6,7 +6,6 @@ vec2 UVToFuncSpaceCoord(vec2 uv)
 {
 	vec2 boundsMin = vec2(-2);
 	vec2 boundsMax = vec2(2);
-	
 	return mix(boundsMin, boundsMax, uv);
 }
 
