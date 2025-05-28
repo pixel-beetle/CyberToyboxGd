@@ -17,6 +17,7 @@ var m_ZoomLevel : float = 0.0;
 var m_MousePos : Vector2 = Vector2(0, 0);
 
 var m_FunctionInputEdits : Array[FunctionInputEdit] = [];
+var m_FunctionVariableInputEdits : Array[FunctionVariableInputEdit] = [];
 var m_ParamsInitialized : bool = false;
 
 
@@ -86,6 +87,7 @@ func InitializeParamatersIfNeeded() -> void:
 	DisplayItem.zoom_changed.connect(_on_zoom_changed);
 	DisplayItem.mouse_moved.connect(_on_mouse_position_got);
 	m_FunctionInputEdits = []
+	m_FunctionVariableInputEdits = []
 	m_FuncUnitsPerPixel = 0.005;
 	m_MousePos = Vector2(0, 0);
 	m_ZoomLevel = 1.0;
@@ -93,12 +95,16 @@ func InitializeParamatersIfNeeded() -> void:
 	var screenSizeF := Vector2(screenSize.x, screenSize.y)
 	m_FunctionCoordBoundsMin = DisplayItem.size * Vector2(-0.5, -0.5) * m_FuncUnitsPerPixel;
 	m_FunctionCoordBoundsMax = DisplayItem.size * Vector2(0.5, 0.5) * m_FuncUnitsPerPixel;
-	var children := find_children("","FunctionInputEdit",true,true);
+	var children := find_children("","Node",true,true);
 	for child in children:
-		var tryCast := child as FunctionInputEdit
-		if tryCast != null:
-			m_FunctionInputEdits.append(tryCast);
-			tryCast.text_changed.connect(_on_FunctionInputEdit_text_changed);
+		var funcInputEdit := child as FunctionInputEdit
+		if funcInputEdit != null:
+			m_FunctionInputEdits.append(funcInputEdit);
+			funcInputEdit.text_changed.connect(_on_FunctionInputEdit_text_changed);
+		var funcVariableInputEdit := child as FunctionVariableInputEdit
+		if funcVariableInputEdit != null:
+			m_FunctionVariableInputEdits.append(funcVariableInputEdit);
+		
 	SetFunctionInputs(FunctionPreset.DefaultInputs);
 	m_ParamsInitialized = true;
 
@@ -158,7 +164,7 @@ func InitializeIfNeeded() -> void:
 		m_DynamicShader = Shader.new();
 		m_DynamicShader.code = SHADER_CODE_TEMPLATE\
 				.replace("//<DynamicGeneratedFunctions>", SHADER_DYNAMIC_FUNCTIONS_DEFAULT)\
-				.replace("//<CommonDefines>", SHADER_CODE_COMMON_DEFINES)
+				.replace("//<CommonDefines>", SHADER_CODE_STATIC_COMMON_DEFINES)
 		
 	if not m_RenderMaterial:
 		m_RenderMaterial = ShaderMaterial.new();
@@ -204,9 +210,15 @@ func UpdateMaterialProperties() -> void:
 	m_RenderMaterial.set_shader_parameter("_FuncUnitsPerPixel", m_FuncUnitsPerPixel);
 	var gridLineIntervals : Vector2 = GetGridLineIntervals();
 	m_RenderMaterial.set_shader_parameter("_GridLineInterval", gridLineIntervals);
+	for customVariable in m_FunctionVariableInputEdits:
+		var variableName : String = customVariable.VarName;
+		if variableName == "":
+			continue
+		m_RenderMaterial.set_shader_parameter(variableName, customVariable.VarValue);	
 
-	
 func RecompileForFunctionTextEditValidation(content : String) -> bool: 
+	if content == "":
+		return false;
 	m_DummyShaderForCompileCheck.code = """
 		shader_type canvas_item;
 		//<CommonDefines>
@@ -219,7 +231,7 @@ func RecompileForFunctionTextEditValidation(content : String) -> bool:
 			COLOR = _Color;
 		}
 		""".replace("<BODY>", content)\
-			.replace("//<CommonDefines>", SHADER_CODE_COMMON_DEFINES);
+			.replace("//<CommonDefines>", GetShaderCommonDefines());
 	
 	return not m_DummyShaderForCompileCheck.get_shader_uniform_list().is_empty()
 
@@ -260,7 +272,22 @@ func GenerateDynamicFunctionShaderCode() -> String:
 	""".replace("<BODY>", appyFunctionGraphs_Body);
 	return SHADER_CODE_TEMPLATE\
 				.replace("//<DynamicGeneratedFunctions>", dynamicContent)\
-				.replace("//<CommonDefines>", SHADER_CODE_COMMON_DEFINES)
+				.replace("//<CommonDefines>", GetShaderCommonDefines())
+
+func GetShaderCommonDefines() -> String:
+	return SHADER_CODE_STATIC_COMMON_DEFINES + "\n" \
+		+ GetShaderCustomVariableUniformDeclarations() + "\n";
+			
+	
+func GetShaderCustomVariableUniformDeclarations() -> String:
+	var result : String = ""
+	for input in m_FunctionVariableInputEdits:
+		if input.VarName == "":
+			continue;
+		result += """
+			uniform highp float <VarName>;
+			""".replace("<VarName>", input.VarName);
+	return result;
 
 # Called every frame. 'delta' is the elapsed time since the previous frame.
 func _process(delta: float) -> void:
@@ -355,7 +382,7 @@ float4 AppyFunctionGraphs(float4 inColor, float2 coord)
 
 """
 
-const SHADER_CODE_COMMON_DEFINES : String = """
+const SHADER_CODE_STATIC_COMMON_DEFINES : String = """
 #define float2 vec2
 #define float3 vec3
 #define float4 vec4

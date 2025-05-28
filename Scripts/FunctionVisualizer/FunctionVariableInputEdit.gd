@@ -1,4 +1,5 @@
 extends Node
+class_name FunctionVariableInputEdit
 
 @export
 var VarName : String = "A";

@@ -248,34 +248,35 @@ layout_mode = 2
 
 [node name="FunctionVariableInput" parent="Background/VBoxContainer/Body2/FoldableContainer/Functions/PanelContainer/VBox/VariableSliders/VBox" instance=ExtResource("5_5c1lk")]
 layout_mode = 2
+VarName = "_A"
 
 [node name="FunctionVariableInput2" parent="Background/VBoxContainer/Body2/FoldableContainer/Functions/PanelContainer/VBox/VariableSliders/VBox" instance=ExtResource("5_5c1lk")]
 layout_mode = 2
-VarName = "B"
+VarName = "_B"
 
 [node name="FunctionVariableInput3" parent="Background/VBoxContainer/Body2/FoldableContainer/Functions/PanelContainer/VBox/VariableSliders/VBox" instance=ExtResource("5_5c1lk")]
 layout_mode = 2
-VarName = "C"
+VarName = "_C"
 
 [node name="FunctionVariableInput4" parent="Background/VBoxContainer/Body2/FoldableContainer/Functions/PanelContainer/VBox/VariableSliders/VBox" instance=ExtResource("5_5c1lk")]
 layout_mode = 2
-VarName = "D"
+VarName = "_D"
 
 [node name="FunctionVariableInput5" parent="Background/VBoxContainer/Body2/FoldableContainer/Functions/PanelContainer/VBox/VariableSliders/VBox" instance=ExtResource("5_5c1lk")]
 layout_mode = 2
-VarName = "E"
+VarName = "_E"
 
 [node name="FunctionVariableInput6" parent="Background/VBoxContainer/Body2/FoldableContainer/Functions/PanelContainer/VBox/VariableSliders/VBox" instance=ExtResource("5_5c1lk")]
 layout_mode = 2
-VarName = "F"
+VarName = "_F"
 
 [node name="FunctionVariableInput7" parent="Background/VBoxContainer/Body2/FoldableContainer/Functions/PanelContainer/VBox/VariableSliders/VBox" instance=ExtResource("5_5c1lk")]
 layout_mode = 2
-VarName = "G"
+VarName = "_G"
 
 [node name="FunctionVariableInput8" parent="Background/VBoxContainer/Body2/FoldableContainer/Functions/PanelContainer/VBox/VariableSliders/VBox" instance=ExtResource("5_5c1lk")]
 layout_mode = 2
-VarName = "H"
+VarName = "_H"
 
 [node name="BottomControlPanel" type="Control" parent="Background/VBoxContainer/Body2" node_paths=PackedStringArray("FunctionVisualizer", "TimeTextLabel", "TimeSlider", "TimeResetButton", "TimePauseButton")]
 layout_mode = 1
