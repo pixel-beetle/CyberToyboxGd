@@ -20,6 +20,7 @@ var m_FunctionInputEdits : Array[FunctionInputEdit] = [];
 var m_FunctionVariableInputEdits : Array[FunctionVariableInputEdit] = [];
 var m_ParamsInitialized : bool = false;
 
+var m_LastDynamicShaderCode : String = "";
 
 const MaxTime := 1000.0
 
@@ -116,9 +117,12 @@ func _on_FunctionInputEdit_text_changed(textEdit: FunctionInputEdit, index :int,
 		textEdit.MarkContentValid(false);
 	UpdateDynamicShaderCode()
 
-func UpdateDynamicShaderCode():
+func UpdateDynamicShaderCode() -> void:
 	var shaderContent: String = GenerateDynamicFunctionShaderCode()
+	if m_LastDynamicShaderCode == shaderContent:
+		return;
 	m_DynamicShader.code = shaderContent
+	m_LastDynamicShaderCode = shaderContent
 
 func SetFunctionInputs(inputs : Array[String]):
 	for i in range(len(inputs)):
@@ -219,6 +223,16 @@ func UpdateMaterialProperties() -> void:
 func RecompileForFunctionTextEditValidation(content : String) -> bool: 
 	if content == "":
 		return false;
+	var parser := FunctionExpressionParser.new()
+	var tree := parser.parse(content)
+	
+	if tree == null:
+		print("Error parsing function expression: " + content)
+		return false;
+	else:
+		print("Successfully parsed function expression: " + content)
+		print(tree)
+	
 	m_DummyShaderForCompileCheck.code = """
 		shader_type canvas_item;
 		//<CommonDefines>
