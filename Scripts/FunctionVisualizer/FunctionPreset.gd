@@ -6,5 +6,7 @@ const DefaultInputs : Array[String] = [
 		"x*x*x",
 		"1.0f / x",
 		"sin(x)",
-		"abs(x)"
+		"cos(x)",
+		"abs(x)",
+		"exp2(x)",
 	]

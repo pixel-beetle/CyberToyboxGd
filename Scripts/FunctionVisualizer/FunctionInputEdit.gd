@@ -53,7 +53,7 @@ func _ready():
 		"A", "B", "C", "D", "E", "F", "G",
 		"H", "I", "J", "K", "L", "M", "N", 
 		"O", "P", "Q", "R", "S", "T", 
-		"U", "V", "W", "X", "Y", "Z"
+		"U", "V", "W", "X", "Y", "Z", "\t"
 	]
 	m_CodeEdit.focus_entered.connect(_on_focus_entered)
 	m_CodeEdit.focus_exited.connect(_on_focus_exited)

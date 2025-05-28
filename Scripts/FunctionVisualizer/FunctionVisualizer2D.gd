@@ -425,10 +425,10 @@ float2 FuncSpaceCoordToScreenPos(float2 coord, float2 screenSize)
 }
 
 #define DECLARE_FUNC_GetLerpFactor(index) float GetLerpFactor##index(float2 coord, float funcY, float funcSlope) { \
-	float minDist = 1e10; \
+	float minDist = 1000.0; \
 	float unitsPerPixel = dFdx(coord.x); \
-	float xMin = coord.x - unitsPerPixel * 4.0; \
-	float xMax = coord.x + unitsPerPixel * 4.0; \
+	float xMin = coord.x - unitsPerPixel * 16.0; \
+	float xMax = coord.x + unitsPerPixel * 16.0; \
 	int steps = 128; \
 	float dx = (xMax - xMin) / float(steps); \
 	for (int i = 0; i < steps; ++i) \
@@ -436,10 +436,10 @@ float2 FuncSpaceCoordToScreenPos(float2 coord, float2 screenSize)
 		float x = xMin + float(i) * dx; \
 		float y = f##index(x, _Time); \
 		float dist = length(coord - vec2(x, y)); \
+		dist = dist / unitsPerPixel; \
 		minDist = min(minDist, dist); \
 	} \
-	float pixelDist = minDist / unitsPerPixel; \
-	return smoothstep(3, 2, pixelDist); \
+	return smoothstep(2.0, 1.0, minDist); \
 }
 
 #define DECLARE_FUNC_ApplyFunctionGraph(index) float4 ApplyFunctionGraph_##index(float4 inColor, float4 funcGraphColor, float2 coord) { \

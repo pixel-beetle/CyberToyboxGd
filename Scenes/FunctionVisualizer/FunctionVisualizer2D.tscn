@@ -1,10 +1,12 @@
-[gd_scene load_steps=10 format=3 uid="uid://bfde3vpnmspyc"]
+[gd_scene load_steps=12 format=3 uid="uid://bfde3vpnmspyc"]
 
 [ext_resource type="Script" uid="uid://b44qcq5mv7118" path="res://Scripts/FunctionVisualizer/FunctionVisualizer2D.gd" id="1_3wf0p"]
 [ext_resource type="Material" uid="uid://xjq4pcynnlhb" path="res://Scripts/FunctionVisualizer/new_shader_material.material" id="1_ig1e0"]
 [ext_resource type="PackedScene" uid="uid://ct4rmrtcgc8lc" path="res://Scenes/FunctionVisualizer/FunctionInput.tscn" id="2_w6rve"]
 [ext_resource type="Script" uid="uid://k0eh8h78swwy" path="res://Scripts/FunctionVisualizer/FunctionVisualizer2DDisplayCanvas.gd" id="3_wjtke"]
 [ext_resource type="Script" uid="uid://d2yvjxowkjm7e" path="res://Scripts/FunctionVisualizer/FunctionVisualizer2DInfoLabels.gd" id="4_eodmu"]
+[ext_resource type="PackedScene" uid="uid://8lq188615ymg" path="res://Scenes/FunctionVisualizer/FunctionVariableInputHeader.tscn" id="5_4upx0"]
+[ext_resource type="PackedScene" uid="uid://cvyb11qlc74oa" path="res://Scenes/FunctionVisualizer/FunctionVariableInput.tscn" id="5_5c1lk"]
 [ext_resource type="Script" uid="uid://butrkcgl3jlkw" path="res://Scripts/FunctionVisualizer/FunctionVisualizerTimeControlView.gd" id="6_q0q4c"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_w6rve"]
@@ -113,45 +115,61 @@ layout_mode = 1
 anchors_preset = 1
 anchor_left = 1.0
 anchor_right = 1.0
-offset_left = -744.708
+offset_left = -578.0
 offset_top = 32.0
-offset_right = -36.708
-offset_bottom = 463.0
+offset_right = -40.0
+offset_bottom = 777.0
 grow_horizontal = 0
 mouse_filter = 1
 text = "Functions"
-metadata/_edit_group_ = true
 
 [node name="Functions" type="VSplitContainer" parent="Background/VBoxContainer/Body2/FoldableContainer"]
-custom_minimum_size = Vector2(700, 0)
 layout_mode = 2
 theme_override_constants/separation = 24
 
 [node name="PanelContainer" type="PanelContainer" parent="Background/VBoxContainer/Body2/FoldableContainer/Functions"]
 clip_contents = true
 layout_mode = 2
+size_flags_vertical = 0
 
 [node name="VBox" type="VBoxContainer" parent="Background/VBoxContainer/Body2/FoldableContainer/Functions/PanelContainer"]
 layout_mode = 2
+theme_override_constants/separation = 8
 
-[node name="TopButtons" type="HBoxContainer" parent="Background/VBoxContainer/Body2/FoldableContainer/Functions/PanelContainer/VBox"]
+[node name="MarginContainer" type="MarginContainer" parent="Background/VBoxContainer/Body2/FoldableContainer/Functions/PanelContainer/VBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/margin_left = 40
+theme_override_constants/margin_top = 0
+theme_override_constants/margin_right = 40
+theme_override_constants/margin_bottom = 0
+
+[node name="TopHeader" type="HBoxContainer" parent="Background/VBoxContainer/Body2/FoldableContainer/Functions/PanelContainer/VBox/MarginContainer"]
 custom_minimum_size = Vector2(0, 40)
 layout_mode = 2
 theme_override_constants/separation = 4
 alignment = 2
 
-[node name="Button" type="Button" parent="Background/VBoxContainer/Body2/FoldableContainer/Functions/PanelContainer/VBox/TopButtons"]
+[node name="Label" type="Label" parent="Background/VBoxContainer/Body2/FoldableContainer/Functions/PanelContainer/VBox/MarginContainer/TopHeader"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 1
+text = "Press TAB for function hints."
+vertical_alignment = 2
+
+[node name="Button" type="Button" parent="Background/VBoxContainer/Body2/FoldableContainer/Functions/PanelContainer/VBox/MarginContainer/TopHeader"]
 custom_minimum_size = Vector2(50, 0)
 layout_mode = 2
 text = "？"
 
-[node name="Button2" type="Button" parent="Background/VBoxContainer/Body2/FoldableContainer/Functions/PanelContainer/VBox/TopButtons"]
+[node name="Button2" type="Button" parent="Background/VBoxContainer/Body2/FoldableContainer/Functions/PanelContainer/VBox/MarginContainer/TopHeader"]
 custom_minimum_size = Vector2(50, 0)
 layout_mode = 2
 text = "+"
 
 [node name="ScrollContainer" type="ScrollContainer" parent="Background/VBoxContainer/Body2/FoldableContainer/Functions/PanelContainer/VBox"]
-custom_minimum_size = Vector2(0, 250)
+custom_minimum_size = Vector2(0, 300)
 layout_mode = 2
 size_flags_vertical = 3
 follow_focus = true
@@ -162,18 +180,20 @@ layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
 theme_override_constants/margin_left = 40
+theme_override_constants/margin_top = 15
 theme_override_constants/margin_right = 40
 theme_override_constants/margin_bottom = 0
 
 [node name="FunctionTextInputs" type="VBoxContainer" parent="Background/VBoxContainer/Body2/FoldableContainer/Functions/PanelContainer/VBox/ScrollContainer/MarginContainer"]
-custom_minimum_size = Vector2(600, 0)
+custom_minimum_size = Vector2(520, 0)
 layout_mode = 2
 size_flags_horizontal = 3
-size_flags_vertical = 3
+size_flags_vertical = 0
 
 [node name="FunctionInput" parent="Background/VBoxContainer/Body2/FoldableContainer/Functions/PanelContainer/VBox/ScrollContainer/MarginContainer/FunctionTextInputs" instance=ExtResource("2_w6rve")]
 layout_mode = 2
 Index = 1
+DefaultColor = Color(0.412442, 0.679215, 0.649795, 1)
 
 [node name="FunctionInput2" parent="Background/VBoxContainer/Body2/FoldableContainer/Functions/PanelContainer/VBox/ScrollContainer/MarginContainer/FunctionTextInputs" instance=ExtResource("2_w6rve")]
 layout_mode = 2
@@ -200,52 +220,62 @@ layout_mode = 2
 Index = 6
 DefaultColor = Color(0.48365, 0.396879, 0.922465, 1)
 
-[node name="FuncQuickButtonBox" type="HFlowContainer" parent="Background/VBoxContainer/Body2/FoldableContainer/Functions"]
+[node name="FunctionInput7" parent="Background/VBoxContainer/Body2/FoldableContainer/Functions/PanelContainer/VBox/ScrollContainer/MarginContainer/FunctionTextInputs" instance=ExtResource("2_w6rve")]
 layout_mode = 2
-size_flags_vertical = 0
-theme_override_constants/h_separation = 20
-theme_override_constants/v_separation = 30
-alignment = 1
+Index = 7
+DefaultColor = Color(0.750771, 0.415259, 0.376205, 1)
 
-[node name="HFlowContainer" type="HFlowContainer" parent="Background/VBoxContainer/Body2/FoldableContainer/Functions/FuncQuickButtonBox"]
-custom_minimum_size = Vector2(200, 0)
+[node name="FunctionInput8" parent="Background/VBoxContainer/Body2/FoldableContainer/Functions/PanelContainer/VBox/ScrollContainer/MarginContainer/FunctionTextInputs" instance=ExtResource("2_w6rve")]
 layout_mode = 2
+Index = 8
+DefaultColor = Color(0.341747, 0.567975, 0.273078, 1)
 
-[node name="Button" type="Button" parent="Background/VBoxContainer/Body2/FoldableContainer/Functions/FuncQuickButtonBox/HFlowContainer"]
-custom_minimum_size = Vector2(80, 35)
+[node name="VariableSliders" type="MarginContainer" parent="Background/VBoxContainer/Body2/FoldableContainer/Functions/PanelContainer/VBox"]
 layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/margin_left = 40
+theme_override_constants/margin_right = 40
+theme_override_constants/margin_bottom = 0
 
-[node name="Button2" type="Button" parent="Background/VBoxContainer/Body2/FoldableContainer/Functions/FuncQuickButtonBox/HFlowContainer"]
-custom_minimum_size = Vector2(80, 35)
+[node name="VBox" type="VBoxContainer" parent="Background/VBoxContainer/Body2/FoldableContainer/Functions/PanelContainer/VBox/VariableSliders"]
+custom_minimum_size = Vector2(0, 40)
 layout_mode = 2
+theme_override_constants/separation = 4
 
-[node name="Button3" type="Button" parent="Background/VBoxContainer/Body2/FoldableContainer/Functions/FuncQuickButtonBox/HFlowContainer"]
-custom_minimum_size = Vector2(80, 35)
-layout_mode = 2
-
-[node name="Button4" type="Button" parent="Background/VBoxContainer/Body2/FoldableContainer/Functions/FuncQuickButtonBox/HFlowContainer"]
-custom_minimum_size = Vector2(80, 35)
-layout_mode = 2
-
-[node name="HFlowContainer2" type="HFlowContainer" parent="Background/VBoxContainer/Body2/FoldableContainer/Functions/FuncQuickButtonBox"]
-custom_minimum_size = Vector2(200, 0)
+[node name="FunctionVariableInputHeader" parent="Background/VBoxContainer/Body2/FoldableContainer/Functions/PanelContainer/VBox/VariableSliders/VBox" instance=ExtResource("5_4upx0")]
 layout_mode = 2
 
-[node name="Button" type="Button" parent="Background/VBoxContainer/Body2/FoldableContainer/Functions/FuncQuickButtonBox/HFlowContainer2"]
-custom_minimum_size = Vector2(80, 35)
+[node name="FunctionVariableInput" parent="Background/VBoxContainer/Body2/FoldableContainer/Functions/PanelContainer/VBox/VariableSliders/VBox" instance=ExtResource("5_5c1lk")]
 layout_mode = 2
 
-[node name="Button2" type="Button" parent="Background/VBoxContainer/Body2/FoldableContainer/Functions/FuncQuickButtonBox/HFlowContainer2"]
-custom_minimum_size = Vector2(80, 35)
+[node name="FunctionVariableInput2" parent="Background/VBoxContainer/Body2/FoldableContainer/Functions/PanelContainer/VBox/VariableSliders/VBox" instance=ExtResource("5_5c1lk")]
 layout_mode = 2
+VarName = "B"
 
-[node name="Button3" type="Button" parent="Background/VBoxContainer/Body2/FoldableContainer/Functions/FuncQuickButtonBox/HFlowContainer2"]
-custom_minimum_size = Vector2(80, 35)
+[node name="FunctionVariableInput3" parent="Background/VBoxContainer/Body2/FoldableContainer/Functions/PanelContainer/VBox/VariableSliders/VBox" instance=ExtResource("5_5c1lk")]
 layout_mode = 2
+VarName = "C"
 
-[node name="Button4" type="Button" parent="Background/VBoxContainer/Body2/FoldableContainer/Functions/FuncQuickButtonBox/HFlowContainer2"]
-custom_minimum_size = Vector2(80, 35)
+[node name="FunctionVariableInput4" parent="Background/VBoxContainer/Body2/FoldableContainer/Functions/PanelContainer/VBox/VariableSliders/VBox" instance=ExtResource("5_5c1lk")]
 layout_mode = 2
+VarName = "D"
+
+[node name="FunctionVariableInput5" parent="Background/VBoxContainer/Body2/FoldableContainer/Functions/PanelContainer/VBox/VariableSliders/VBox" instance=ExtResource("5_5c1lk")]
+layout_mode = 2
+VarName = "E"
+
+[node name="FunctionVariableInput6" parent="Background/VBoxContainer/Body2/FoldableContainer/Functions/PanelContainer/VBox/VariableSliders/VBox" instance=ExtResource("5_5c1lk")]
+layout_mode = 2
+VarName = "F"
+
+[node name="FunctionVariableInput7" parent="Background/VBoxContainer/Body2/FoldableContainer/Functions/PanelContainer/VBox/VariableSliders/VBox" instance=ExtResource("5_5c1lk")]
+layout_mode = 2
+VarName = "G"
+
+[node name="FunctionVariableInput8" parent="Background/VBoxContainer/Body2/FoldableContainer/Functions/PanelContainer/VBox/VariableSliders/VBox" instance=ExtResource("5_5c1lk")]
+layout_mode = 2
+VarName = "H"
 
 [node name="BottomControlPanel" type="Control" parent="Background/VBoxContainer/Body2" node_paths=PackedStringArray("FunctionVisualizer", "TimeTextLabel", "TimeSlider", "TimeResetButton", "TimePauseButton")]
 layout_mode = 1
