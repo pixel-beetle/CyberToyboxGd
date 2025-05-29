@@ -100,6 +100,7 @@ func InitializeParamatersIfNeeded() -> void:
 	for child in children:
 		var funcInputEdit := child as FunctionInputEdit
 		if funcInputEdit != null:
+			funcInputEdit.Visualizer = self;
 			m_FunctionInputEdits.append(funcInputEdit);
 			funcInputEdit.text_changed.connect(_on_FunctionInputEdit_text_changed);
 		var funcVariableInputEdit := child as FunctionVariableInputEdit
@@ -223,16 +224,6 @@ func UpdateMaterialProperties() -> void:
 func RecompileForFunctionTextEditValidation(content : String) -> bool: 
 	if content == "":
 		return false;
-	var parser := FunctionExpressionParser.new()
-	var tree := parser.parse(content)
-	
-	if tree == null:
-		print("Error parsing function expression: " + content)
-		return false;
-	else:
-		print("Successfully parsed function expression: " + content)
-		print(tree)
-	
 	m_DummyShaderForCompileCheck.code = """
 		shader_type canvas_item;
 		//<CommonDefines>
@@ -302,6 +293,20 @@ func GetShaderCustomVariableUniformDeclarations() -> String:
 			uniform highp float <VarName>;
 			""".replace("<VarName>", input.VarName);
 	return result;
+
+func GetValidVariableNames() -> Array[String]:
+	var result : Array[String] = ["x", "t"];
+	for input in m_FunctionVariableInputEdits:
+		if input.VarName == "":
+			continue;
+		result.append(input.VarName);
+	return result;
+
+func GetValidFunctionNames() -> Array[String]:
+	var result : Array[String] = []
+	for function in FunctionLib2D.BuiltinFunctions:
+		result.append(function.Name);
+	return result;	
 
 # Called every frame. 'delta' is the elapsed time since the previous frame.
 func _process(delta: float) -> void:

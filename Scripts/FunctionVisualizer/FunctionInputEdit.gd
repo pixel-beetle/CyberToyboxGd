@@ -1,6 +1,6 @@
 @tool
-extends Control
 class_name FunctionInputEdit
+extends Control
 
 @export
 var Index: int = 0
@@ -23,7 +23,11 @@ var m_IsContentValid: bool
 
 var m_HeightBeforeFocus : float
 var m_DefaultLineBackGroundColor: Color
+
+var m_CurrentGLSLCode: String = ""
 const s_ErrorLineColor: Color = Color(0.78039217, 0.36078432, 0.36078432)
+
+var Visualizer : FunctionVisualizer2D = null
 
 var IsContentValid:
 	get:
@@ -31,9 +35,13 @@ var IsContentValid:
 
 var Content:
 	get:
-		return m_CodeEdit.get_text()
+		return m_CurrentGLSLCode
 	set(value):
 		m_CodeEdit.set_text(value)
+		m_CurrentGLSLCode = value
+
+var m_FslParser : FslParser = FslParser.new()
+var m_ValidIdentifiers : Array[String] = []
 
 func _ready():
 	m_FuncNameLabel.text = FuncLabelTemplate.replace("<i>", str(Index))
@@ -60,7 +68,20 @@ func _ready():
 	m_CodeEdit.code_completion_requested.connect(_on_code_completion_requested)
 
 func _on_text_changed():
-	text_changed.emit(self, Index, m_CodeEdit.get_text())
+	var content                         := m_CodeEdit.text
+	var result : FslParser.ParseContext =  m_FslParser.parse(content, Visualizer.GetValidFunctionNames() , Visualizer.GetValidVariableNames())
+	if result == null or not result.success:
+		print("Error parsing function expression: " + content)
+		print(result.message)
+		MarkContentValid(false)
+	else:
+		print("Successfully parsed function expression: " + content)
+		m_CurrentGLSLCode = result.ast.to_glsl()
+		print(m_CurrentGLSLCode)
+		print(JSON.stringify(result.ast))
+		MarkContentValid(true)
+		text_changed.emit(self, Index, m_CurrentGLSLCode)
+		
 	m_CodeEdit.request_code_completion()
 
 func _on_code_completion_requested():
