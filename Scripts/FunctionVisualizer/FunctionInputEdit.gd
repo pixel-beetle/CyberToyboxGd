@@ -13,7 +13,9 @@ var SyntaxHighligherResourceTemplate: SyntaxHighlighter
 var FuncLabelTemplate: String = "f<i>(x, t) = "
 
 @onready
-var m_FuncNameLabel = $HBox/RichTextLabel
+var m_FuncNameLabel : RichTextLabel = $HBox/RichTextLabel
+@onready
+var m_ErrorMessageLabel :Label = $HBox/CodeEdit/ErrorLabel
 
 var m_ColorPickerButton: ColorPickerButton
 var m_CodeEdit: CodeEdit
@@ -73,6 +75,7 @@ func _on_text_changed():
 	if result == null or not result.success:
 		print("Error parsing function expression: " + content)
 		print(result.message)
+		m_ErrorMessageLabel.text = result.message
 		MarkContentValid(false)
 	else:
 		print("Successfully parsed function expression: " + content)
@@ -80,6 +83,7 @@ func _on_text_changed():
 		print(m_CurrentGLSLCode)
 		print(JSON.stringify(result.ast))
 		MarkContentValid(true)
+		m_ErrorMessageLabel.text = ""
 		text_changed.emit(self, Index, m_CurrentGLSLCode)
 		
 	m_CodeEdit.request_code_completion()
@@ -112,8 +116,10 @@ func MarkContentValid(valid: bool) -> void:
 	m_IsContentValid = valid
 	# Make label red if invalid
 	if not valid:
+		m_ErrorMessageLabel.visible = true
 		for i in range(m_CodeEdit.get_line_count()):
 			m_CodeEdit.set_line_background_color(i, s_ErrorLineColor)
 	else:
+		m_ErrorMessageLabel.visible = false
 		for i in range(m_CodeEdit.get_line_count()):
 			m_CodeEdit.set_line_background_color(i, m_DefaultLineBackGroundColor)
