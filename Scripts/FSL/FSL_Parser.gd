@@ -10,35 +10,6 @@ const PRECEDENCE: Dictionary = {
 								   "*": 6, "/": 6, "%": 6,
 								   "**": 7
 							   }
-# Token模式定义（正则表达式）
-const TOKEN_PATTERNS: Array[Variant] = [
-									   # 运算符（双字符优先）
-										   {"regex": "^\\*\\*", "type": FslToken.Type.OPERATOR, "value": "**"},
-										   {"regex": "^&&", "type": FslToken.Type.OPERATOR, "value": "&&"},
-										   {"regex": "^\\|\\|", "type": FslToken.Type.OPERATOR, "value": "||"},
-										   {"regex": "^==", "type": FslToken.Type.OPERATOR, "value": "=="},
-										   {"regex": "^!=", "type": FslToken.Type.OPERATOR, "value": "!="},
-										   {"regex": "^<=", "type": FslToken.Type.OPERATOR, "value": "<="},
-										   {"regex": "^>=", "type": FslToken.Type.OPERATOR, "value": ">="},
-										   {"regex": "^[+\\-*/%<>=!&|^~]", "type": FslToken.Type.OPERATOR},
-
-									   # 数字字面量
-										   {"regex": "^\\d+\\.\\d*([eE][\\-+]?\\d+)?[fFhH]?", "type": FslToken.Type.NUMBER}, # 浮点数
-										   {"regex": "^\\.\\d+([eE][\\-+]?\\d+)?[fFhH]?", "type": FslToken.Type.NUMBER}, # .开头浮点数
-										   {"regex": "^\\d+[eE][\\-+]?\\d+[fFhH]?", "type": FslToken.Type.NUMBER}, # 科学计数法
-										   {"regex": "^\\d+", "type": FslToken.Type.NUMBER}, # 整数
-
-									   # 标识符
-										   {"regex": "^[a-zA-Z_][a-zA-Z0-9_]*", "type": FslToken.Type.IDENTIFIER},
-
-									   # 标点符号
-										   {"regex": "^\\(", "type": FslToken.Type.LPAREN, "value": "("},
-										   {"regex": "^\\)", "type": FslToken.Type.RPAREN, "value": ")"},
-										   {"regex": "^,", "type": FslToken.Type.COMMA, "value": ","},
-										   {"regex": "^\\?", "type": FslToken.Type.QUESTION, "value": "?"},
-										   {"regex": "^:", "type": FslToken.Type.COLON, "value": ":"},
-									   ]
-
 
 # 解析器主体
 var tokens: Array[FslToken]
@@ -86,7 +57,7 @@ func _tokenize(expression: String) -> Array[FslToken]:
 		var matched: bool = false
 
 		# 尝试匹配所有token模式
-		for pattern in TOKEN_PATTERNS:
+		for pattern in FslToken.TOKEN_PATTERNS:
 			var regex = RegEx.new()
 			var err   = regex.compile(pattern.regex)
 			if err != OK:
