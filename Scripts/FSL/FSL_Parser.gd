@@ -23,9 +23,9 @@ const TOKEN_PATTERNS: Array[Variant] = [
 										   {"regex": "^[+\\-*/%<>=!&|^~]", "type": FslToken.Type.OPERATOR},
 
 									   # 数字字面量
-										   {"regex": "^\\d+\\.\\d*([eE][\\-+]?\\d+)?", "type": FslToken.Type.NUMBER}, # 浮点数
-										   {"regex": "^\\.\\d+([eE][\\-+]?\\d+)?", "type": FslToken.Type.NUMBER}, # .开头浮点数
-										   {"regex": "^\\d+[eE][\\-+]?\\d+", "type": FslToken.Type.NUMBER}, # 科学计数法
+										   {"regex": "^\\d+\\.\\d*([eE][\\-+]?\\d+)?[fFhH]?", "type": FslToken.Type.NUMBER}, # 浮点数
+										   {"regex": "^\\.\\d+([eE][\\-+]?\\d+)?[fFhH]?", "type": FslToken.Type.NUMBER}, # .开头浮点数
+										   {"regex": "^\\d+[eE][\\-+]?\\d+[fFhH]?", "type": FslToken.Type.NUMBER}, # 科学计数法
 										   {"regex": "^\\d+", "type": FslToken.Type.NUMBER}, # 整数
 
 									   # 标识符
@@ -141,6 +141,10 @@ func _parse_ternary(state : ParseContext) -> FslASTNode:
 
 		_advance()  # 跳过 ':'
 		var false_expr: FslASTNode = _parse_ternary(state)
+		if false_expr  == null:
+			state.success = false;
+			state.message = ("Expected expression after ':' in ternary expression at position %d" % current_token.position);
+			return null
 
 		return FSLTernaryExpression.new(condition, true_expr, false_expr)
 
@@ -320,4 +324,3 @@ func _parse_function_call(func_name: String, state : ParseContext) -> FslASTNode
 
 	_advance()  # 跳过 ')'
 	return FslFunctionCall.new(func_name, args)
-

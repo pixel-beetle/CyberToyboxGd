@@ -5,9 +5,9 @@ var true_exp: FslASTNode
 var false_exp: FslASTNode
 
 
-func _init(condition, true_ex, false_exp):
-	self.condition = condition
-	self.true_ex = true_ex
+func _init(c : FslASTNode, true_exp : FslASTNode, false_exp : FslASTNode):
+	self.condition = c
+	self.true_exp = true_exp
 	self.false_exp = false_exp
 
 
