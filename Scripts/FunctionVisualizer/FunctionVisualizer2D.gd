@@ -5,7 +5,13 @@ class_name FunctionVisualizer2D
 
 var m_RenderMaterial : ShaderMaterial;
 var m_DynamicShader : Shader;
+var m_DynamicShader2 : Shader;
+
+# weak ref
+var m_CurrentDynamicShader : Shader;
+# weak ref
 var m_DummyShaderForCompileCheck : Shader;
+
 var m_Time : float = 0.0;
 var m_IsPausingTime : bool = false
 
@@ -92,8 +98,6 @@ func InitializeParamatersIfNeeded() -> void:
 	m_FuncUnitsPerPixel = 0.005;
 	m_MousePos = Vector2(0, 0);
 	m_ZoomLevel = 1.0;
-	var screenSize := DisplayServer.screen_get_size()
-	var screenSizeF := Vector2(screenSize.x, screenSize.y)
 	m_FunctionCoordBoundsMin = DisplayItem.size * Vector2(-0.5, -0.5) * m_FuncUnitsPerPixel;
 	m_FunctionCoordBoundsMax = DisplayItem.size * Vector2(0.5, 0.5) * m_FuncUnitsPerPixel;
 	var children := find_children("","Node",true,true);
@@ -102,28 +106,43 @@ func InitializeParamatersIfNeeded() -> void:
 		if funcInputEdit != null:
 			funcInputEdit.Visualizer = self;
 			m_FunctionInputEdits.append(funcInputEdit);
-			funcInputEdit.text_changed.connect(_on_FunctionInputEdit_text_changed);
+			
 		var funcVariableInputEdit := child as FunctionVariableInputEdit
 		if funcVariableInputEdit != null:
 			m_FunctionVariableInputEdits.append(funcVariableInputEdit);
 		
 	SetFunctionInputs(FunctionPreset.DefaultInputs);
+	for funcInputEdit in m_FunctionInputEdits:
+		funcInputEdit.fsl_changed.connect(_on_FunctionInputEdit_fsl_changed);
+	
 	m_ParamsInitialized = true;
-
-
-func _on_FunctionInputEdit_text_changed(textEdit: FunctionInputEdit, index :int, content : String) -> void:
-	if RecompileForFunctionTextEditValidation(content):
-		textEdit.MarkContentValid(true);
-	else:
-		textEdit.MarkContentValid(false);
-	UpdateDynamicShaderCode()
-
-func UpdateDynamicShaderCode() -> void:
+	
+func IsShaderValid(shader : Shader) -> bool:
+	return shader != null and not shader.get_shader_uniform_list().is_empty()
+	
+func _on_FunctionInputEdit_fsl_changed(textEdit: FunctionInputEdit, index :int, content : String) -> void:
 	var shaderContent: String = GenerateDynamicFunctionShaderCode()
+	if not UpdateDynamicShaderCode(shaderContent):
+		textEdit.MarkContentValid(false);
+	else:
+		textEdit.MarkContentValid(true);
+	
+func UpdateDynamicShaderCode(shaderContent : String) -> bool:
 	if m_LastDynamicShaderCode == shaderContent:
-		return;
-	m_DynamicShader.code = shaderContent
-	m_LastDynamicShaderCode = shaderContent
+		return true;
+	print("UpdateDynamicShaderCode,Current = %s, Dummy = %s" %\
+		[m_CurrentDynamicShader.get_name(),  m_DummyShaderForCompileCheck.get_name()]);
+	m_DummyShaderForCompileCheck.code = shaderContent
+	if not IsShaderValid(m_DummyShaderForCompileCheck):
+		print("Invalid Shader Code!")
+		return false;
+	var temp := m_CurrentDynamicShader;
+	m_CurrentDynamicShader = m_DummyShaderForCompileCheck;
+	m_DummyShaderForCompileCheck = temp;
+	m_RenderMaterial.shader = m_CurrentDynamicShader;
+	m_LastDynamicShaderCode = shaderContent;
+	print("Valid Shader Code, Current = %s" % m_CurrentDynamicShader.get_name())
+	return true;
 
 func SetFunctionInputs(inputs : Array[String]):
 	for i in range(len(inputs)):
@@ -131,12 +150,9 @@ func SetFunctionInputs(inputs : Array[String]):
 			break;
 		var textEdit := m_FunctionInputEdits[i];
 		textEdit.Content = inputs[i];
-		if RecompileForFunctionTextEditValidation(inputs[i]):
-			textEdit.MarkContentValid(true);
-		else:
-			textEdit.MarkContentValid(false);
-	UpdateDynamicShaderCode();
-			
+	var shaderContent := GenerateDynamicFunctionShaderCode();
+	UpdateDynamicShaderCode(shaderContent);
+
 func _on_drag_moved(canvasDelta: Vector2) -> void:
 	var funcCoordDelta := canvasDelta;
 	funcCoordDelta.y = -funcCoordDelta.y;
@@ -161,19 +177,24 @@ func _on_mouse_position_got(mousePos: Vector2) -> void:
 	m_MousePos = mousePos;
 	
 func InitializeIfNeeded() -> void:
-	if not m_DummyShaderForCompileCheck:
-		m_DummyShaderForCompileCheck = Shader.new();
-		m_DummyShaderForCompileCheck.code = SHADER_CODE_COMPILE_DUMMY_DEFAULT
+	if not m_CurrentDynamicShader or not m_DummyShaderForCompileCheck:
+		if not m_DynamicShader:
+			m_DynamicShader = Shader.new();
+			m_DynamicShader.set_name("DynamicShader");
+		if not m_DynamicShader2:
+			m_DynamicShader2 = Shader.new();
+			m_DynamicShader2.set_name("DynamicShader2");
 		
-	if not m_DynamicShader:
-		m_DynamicShader = Shader.new();
 		m_DynamicShader.code = SHADER_CODE_TEMPLATE\
-				.replace("//<DynamicGeneratedFunctions>", SHADER_DYNAMIC_FUNCTIONS_DEFAULT)\
-				.replace("//<CommonDefines>", SHADER_CODE_STATIC_COMMON_DEFINES)
+					.replace("//<DynamicGeneratedFunctions>", SHADER_DYNAMIC_FUNCTIONS_DEFAULT);
+		m_DynamicShader2.code = SHADER_CODE_COMPILE_DUMMY_DEFAULT
 		
+		m_CurrentDynamicShader = m_DynamicShader;
+		m_DummyShaderForCompileCheck = m_DynamicShader2;
+
 	if not m_RenderMaterial:
 		m_RenderMaterial = ShaderMaterial.new();
-		m_RenderMaterial.shader = m_DynamicShader;
+		m_RenderMaterial.shader = m_CurrentDynamicShader;
 	
 	InitializeParamatersIfNeeded();
 
@@ -185,18 +206,21 @@ func ReleaseResourcesIfNeeded() -> void:
 	if m_DynamicShader:
 		m_DynamicShader.unreference()
 		m_DynamicShader = null;
-	if m_DummyShaderForCompileCheck:
-		m_DummyShaderForCompileCheck.unreference()
-		m_DummyShaderForCompileCheck = null; 
+	if m_DynamicShader2:
+		m_DynamicShader2.unreference()
+		m_DynamicShader2 = null; 
+	m_CurrentDynamicShader = null;
+	m_DummyShaderForCompileCheck = null;
+	m_LastDynamicShaderCode = "";
 	for input in m_FunctionInputEdits:
-		input.text_changed.disconnect(_on_FunctionInputEdit_text_changed);	
+		input.fsl_changed.disconnect(_on_FunctionInputEdit_fsl_changed);	
 	m_FunctionInputEdits.clear()
 	DisplayItem.drag_moved.disconnect(_on_drag_moved);
 	DisplayItem.zoom_changed.disconnect(_on_zoom_changed);
 	DisplayItem.mouse_moved.disconnect(_on_mouse_position_got);
 	
 func UpdateMaterialProperties() -> void:
-	if not m_RenderMaterial or not m_DynamicShader or not DisplayItem:
+	if not m_RenderMaterial or not DisplayItem:
 		return;
 	if not m_RenderMaterial.shader:
 		return;
@@ -220,27 +244,7 @@ func UpdateMaterialProperties() -> void:
 		if variableName == "":
 			continue
 		m_RenderMaterial.set_shader_parameter(variableName, customVariable.VarValue);	
-
-func RecompileForFunctionTextEditValidation(content : String) -> bool: 
-	if content == "":
-		return false;
-	m_DummyShaderForCompileCheck.code = """
-		shader_type canvas_item;
-		//<CommonDefines>
-		uniform vec4 _Color;
-		float fx(float x, float t){
-			return <BODY>;
-		}
-		void fragment() {
-			float f = fx(0.0, 0.0);
-			COLOR = _Color;
-		}
-		""".replace("<BODY>", content)\
-			.replace("//<CommonDefines>", GetShaderCommonDefines());
-	
-	return not m_DummyShaderForCompileCheck.get_shader_uniform_list().is_empty()
-
-
+		
 func GenerateDynamicFunctionShaderCode() -> String:
 	var uniformAndFunction_Define : String = ""
 	var appyFunctionGraphs_Body : String = ""
@@ -248,17 +252,41 @@ func GenerateDynamicFunctionShaderCode() -> String:
 		if not input.IsContentValid:
 			continue;
 		uniformAndFunction_Define += """
-			
-			uniform float4 _Color<i>;
+			uniform vec4 _Color<i>;
 			float f<i>(float x, float t)
 			{
 				return <c>;
 			}
 			
-			DECLARE_FUNC_GetLerpFactor(<i>)
-			
-			DECLARE_FUNC_ApplyFunctionGraph(<i>)
-			
+			float GetmixFactor<i>(vec2 coord, float funcY, float funcSlope) 
+			{
+				float minDist = 1000.0;
+				float unitsPerPixel = dFdx(coord.x);
+				float xMin = coord.x - unitsPerPixel * 16.0;
+				float xMax = coord.x + unitsPerPixel * 16.0;
+				int steps = 128;
+				float dx = (xMax - xMin) / float(steps);
+				for (int i = 0; i < steps; ++i)
+				{
+					float x = xMin + float(i) * dx;
+					float y = f<i>(x, _Time);
+					float dist = length(coord - vec2(x, y));
+					dist = dist / unitsPerPixel;
+					minDist = min(minDist, dist);
+				}
+				return smoothstep(2.0, 1.0, minDist);
+			}
+		
+			vec4 ApplyFunctionGraph_<i>(vec4 inColor, vec4 funcGraphColor, vec2 coord) 
+			{
+				float epsilon = 0.000001f;
+				float funcValue 	 = f<i>(coord.x, _Time);
+				float funcValueLeft  = f<i>(coord.x - epsilon, _Time);
+				float funcValueRight = f<i>(coord.x + epsilon, _Time);
+				float slope = (funcValueRight - funcValueLeft) / epsilon;
+				float factor = GetmixFactor<i>(coord, funcValue, slope);
+				return mix(inColor, funcGraphColor, factor);
+			}	
 			""".replace("<i>", str(input.Index)).replace("<c>", input.Content);
 		appyFunctionGraphs_Body += """
 			
@@ -267,9 +295,9 @@ func GenerateDynamicFunctionShaderCode() -> String:
 			""".replace("<i>", str(input.Index));
 	var dynamicContent: String = uniformAndFunction_Define + """
 	
-	float4 AppyFunctionGraphs(float4 inColor, float2 coord)
+	vec4 AppyFunctionGraphs(vec4 inColor, vec2 coord)
 	{
-		float4 finalColor = inColor;
+		vec4 finalColor = inColor;
 		<BODY>
 		return finalColor;
 	}
@@ -280,9 +308,7 @@ func GenerateDynamicFunctionShaderCode() -> String:
 				.replace("//<CommonDefines>", GetShaderCommonDefines())
 
 func GetShaderCommonDefines() -> String:
-	return SHADER_CODE_STATIC_COMMON_DEFINES + "\n" \
-		+ GetShaderCustomVariableUniformDeclarations() + "\n";
-			
+	return GetShaderCustomVariableUniformDeclarations() + "\n";
 	
 func GetShaderCustomVariableUniformDeclarations() -> String:
 	var result : String = ""
@@ -334,83 +360,13 @@ void fragment() {
 """
 
 const SHADER_DYNAMIC_FUNCTIONS_DEFAULT : String = """
-
-uniform float4 _Color1;
-uniform float4 _Color2;
-uniform float4 _Color3;
-uniform float4 _Color4;
-uniform float4 _Color5;
-uniform float4 _Color6;
-
-float f1(float x, float t)
+vec4 AppyFunctionGraphs(vec4 inColor, vec2 coord)
 {
-	return x * x;
-}
-
-float f2(float x, float t)
-{
-	return x * x * x;
-}
-
-float f3(float x, float t)
-{
-	return smoothstep(0,1,x);
-}
-
-float f4(float x, float t)
-{
-	return sin(x + t);
-}
-
-float f5(float x, float t)
-{
-	return x;
-}
-
-float f6(float x, float t)
-{
-	return abs(x) < 1e-6f ? 0.0f : 1.0f / x;
-}
-
-DECLARE_FUNC_GetLerpFactor(1)
-DECLARE_FUNC_GetLerpFactor(2)
-DECLARE_FUNC_GetLerpFactor(3)
-DECLARE_FUNC_GetLerpFactor(4)
-DECLARE_FUNC_GetLerpFactor(5)
-DECLARE_FUNC_GetLerpFactor(6)
-
-DECLARE_FUNC_ApplyFunctionGraph(1)
-DECLARE_FUNC_ApplyFunctionGraph(2)
-DECLARE_FUNC_ApplyFunctionGraph(3)
-DECLARE_FUNC_ApplyFunctionGraph(4)
-DECLARE_FUNC_ApplyFunctionGraph(5)
-DECLARE_FUNC_ApplyFunctionGraph(6)
-
-float4 AppyFunctionGraphs(float4 inColor, float2 coord)
-{
-	float4 finalColor = inColor;
-	finalColor = ApplyFunctionGraph_1(finalColor, _Color1, coord);
-	finalColor = ApplyFunctionGraph_2(finalColor, _Color2, coord);
-	finalColor = ApplyFunctionGraph_3(finalColor, _Color3, coord);
-	finalColor = ApplyFunctionGraph_4(finalColor, _Color4, coord);
-	finalColor = ApplyFunctionGraph_5(finalColor, _Color5, coord);
-	finalColor = ApplyFunctionGraph_6(finalColor, _Color6, coord);
+	vec4 finalColor = inColor;
 	return finalColor;
 }
 
-
 """
-
-const SHADER_CODE_STATIC_COMMON_DEFINES : String = """
-#define float2 vec2
-#define float3 vec3
-#define float4 vec4
-
-#define float4x4 mat4
-#define lerp mix
-
-"""
-
 
 const SHADER_CODE_TEMPLATE : String = """
 shader_type canvas_item;
@@ -418,21 +374,21 @@ shader_type canvas_item;
 //<CommonDefines>
 
 uniform float _Time;
-uniform float4 _FunctionCoordBoundsMinMax;
-uniform float4 _CanvasItemPositionSize;
-uniform float2 _GridLineInterval;
+uniform vec4 _FunctionCoordBoundsMinMax;
+uniform vec4 _CanvasItemPositionSize;
+uniform vec2 _GridLineInterval;
 
-varying flat float4x4 _WorldToScreenMatrix; 
+varying flat mat4 _WorldToScreenMatrix; 
 
-float2 UVToFuncSpaceCoord(float2 uv)
+vec2 UVToFuncSpaceCoord(vec2 uv)
 {
-	float2 boundsMin = _FunctionCoordBoundsMinMax.xy;
-	float2 boundsMax = _FunctionCoordBoundsMinMax.zw;
+	vec2 boundsMin = _FunctionCoordBoundsMinMax.xy;
+	vec2 boundsMax = _FunctionCoordBoundsMinMax.zw;
 	
-	return lerp(boundsMin, boundsMax, uv);
+	return mix(boundsMin, boundsMax, uv);
 }
 
-float2 UVToFuncSpaceCoord2(float2 uv)
+vec2 UVToFuncSpaceCoord2(vec2 uv)
 {
 	uv = uv - 0.5f;
 	float aspectRatio = (_CanvasItemPositionSize.z / _CanvasItemPositionSize.w);
@@ -441,63 +397,34 @@ float2 UVToFuncSpaceCoord2(float2 uv)
 	return uv * 5.0;
 }
 
-float2 FuncSpaceCoordToUV(float2 coord)
+vec2 FuncSpaceCoordToUV(vec2 coord)
 {
-	float2 boundsMin = _FunctionCoordBoundsMinMax.xy;
-	float2 boundsMax = _FunctionCoordBoundsMinMax.zw;
+	vec2 boundsMin = _FunctionCoordBoundsMinMax.xy;
+	vec2 boundsMax = _FunctionCoordBoundsMinMax.zw;
 	
 	return (coord - boundsMin) / (boundsMax - boundsMin);
 }
 
-float2 FuncSpaceCoordToScreenUV(float2 coord)
+vec2 FuncSpaceCoordToScreenUV(vec2 coord)
 {
-	float2 uv = FuncSpaceCoordToUV(coord);
-	float2 uv_TopIs0 = uv;
+	vec2 uv = FuncSpaceCoordToUV(coord);
+	vec2 uv_TopIs0 = uv;
 	uv_TopIs0.y = 1.0 - uv_TopIs0.y;
 	
-	float2 worldPosLeftTop = _CanvasItemPositionSize.xy;
-	float2 worldSize = _CanvasItemPositionSize.zw;
-	float2 worldPos = worldPosLeftTop + worldSize * uv_TopIs0;
+	vec2 worldPosLeftTop = _CanvasItemPositionSize.xy;
+	vec2 worldSize = _CanvasItemPositionSize.zw;
+	vec2 worldPos = worldPosLeftTop + worldSize * uv_TopIs0;
 	
-	float4 clipPos = _WorldToScreenMatrix * float4(worldPos, 0, 1);
-	float2 screenUV = clipPos.xy * 0.5f + 0.5f;
+	vec4 clipPos = _WorldToScreenMatrix * vec4(worldPos, 0, 1);
+	vec2 screenUV = clipPos.xy * 0.5f + 0.5f;
 	return screenUV;
 }
 
-float2 FuncSpaceCoordToScreenPos(float2 coord, float2 screenSize)
+vec2 FuncSpaceCoordToScreenPos(vec2 coord, vec2 screenSize)
 {
-	float2 screenUV = FuncSpaceCoordToScreenUV(coord);
+	vec2 screenUV = FuncSpaceCoordToScreenUV(coord);
 	return screenUV * screenSize;
 }
-
-#define DECLARE_FUNC_GetLerpFactor(index) float GetLerpFactor##index(float2 coord, float funcY, float funcSlope) { \
-	float minDist = 1000.0; \
-	float unitsPerPixel = dFdx(coord.x); \
-	float xMin = coord.x - unitsPerPixel * 16.0; \
-	float xMax = coord.x + unitsPerPixel * 16.0; \
-	int steps = 128; \
-	float dx = (xMax - xMin) / float(steps); \
-	for (int i = 0; i < steps; ++i) \
-	{ \
-		float x = xMin + float(i) * dx; \
-		float y = f##index(x, _Time); \
-		float dist = length(coord - vec2(x, y)); \
-		dist = dist / unitsPerPixel; \
-		minDist = min(minDist, dist); \
-	} \
-	return smoothstep(2.0, 1.0, minDist); \
-}
-
-#define DECLARE_FUNC_ApplyFunctionGraph(index) float4 ApplyFunctionGraph_##index(float4 inColor, float4 funcGraphColor, float2 coord) { \
-	float epsilon = 0.000001f; \
-	float funcValue 	 = f##index(coord.x, _Time); \
-	float funcValueLeft  = f##index(coord.x - epsilon, _Time); \
-	float funcValueRight = f##index(coord.x + epsilon, _Time); \
-	float slope = (funcValueRight - funcValueLeft) / epsilon; \
-	float factor = GetLerpFactor##index(coord, funcValue, slope); \
-	return lerp(inColor, funcGraphColor, factor); \
-}
-
 
 //<DynamicGeneratedFunctions>
 
@@ -506,11 +433,11 @@ void vertex()
 	_WorldToScreenMatrix = SCREEN_MATRIX * CANVAS_MATRIX;
 }
 
-float4 ApplyGridLines(float4 inColor, float4 gridColor, float2 coord, float2 screenSize, float gridSize, float gridLinePixelWidth)
+vec4 ApplyGridLines(vec4 inColor, vec4 gridColor, vec2 coord, vec2 screenSize, float gridSize, float gridLinePixelWidth)
 {
-	float2 gridSize2D = float2(gridSize, gridSize);
-	float2 gridId = floor(coord / gridSize2D);
-	float2 gridMin = gridId * gridSize2D;
+	vec2 gridSize2D = vec2(gridSize, gridSize);
+	vec2 gridId = floor(coord / gridSize2D);
+	vec2 gridMin = gridId * gridSize2D;
 	
 	float halfGridLineWidth = gridLinePixelWidth * 0.5f;
 
@@ -518,45 +445,45 @@ float4 ApplyGridLines(float4 inColor, float4 gridColor, float2 coord, float2 scr
 					|| (abs(coord.y - gridMin.y) < halfGridLineWidth * dFdx(coord.x));
 					
 	float factor = isLine ? 1.0 : 0.0;
-	return lerp(inColor, gridColor, factor);
+	return mix(inColor, gridColor, factor);
 }
 
-float4 ApplyHorizontalLine(float4 inColor, float4 lineColor, float2 coord, float Y, float linePixelWidth)
+vec4 ApplyHorizontalLine(vec4 inColor, vec4 lineColor, vec2 coord, float Y, float linePixelWidth)
 {
 	float halfLineWidth = linePixelWidth * 0.5f;
 
 	bool isLine = (abs(coord.y - Y) < halfLineWidth * dFdx(coord.x));
 	
 	float factor = isLine ? 1.0 : 0.0;
-	return lerp(inColor, lineColor, factor);
+	return mix(inColor, lineColor, factor);
 }
 
-float4 ApplyVerticalLine(float4 inColor, float4 lineColor, float2 coord, float X, float linePixelWidth)
+vec4 ApplyVerticalLine(vec4 inColor, vec4 lineColor, vec2 coord, float X, float linePixelWidth)
 {
 	float halfLineWidth = linePixelWidth * 0.5f;
 
 	bool isLine = (abs(coord.x - X) < halfLineWidth * dFdx(coord.x));
 	
 	float factor = isLine ? 1.0 : 0.0;
-	return lerp(inColor, lineColor, factor);
+	return mix(inColor, lineColor, factor);
 }
 
 void fragment() 
 {	
-	float4 backgroundColor = float4(0.16, 0.16, 0.16, 1);
-	float2 uv = UV;
+	vec4 backgroundColor = vec4(0.16, 0.16, 0.16, 1);
+	vec2 uv = UV;
 	uv.y = 1.0f - uv.y;
 	
-	float2 coord = UVToFuncSpaceCoord(uv);
+	vec2 coord = UVToFuncSpaceCoord(uv);
 	
-	float4 finalColor = backgroundColor;
+	vec4 finalColor = backgroundColor;
 	
-	float2 screenSize = 1.0f / SCREEN_PIXEL_SIZE;
+	vec2 screenSize = 1.0f / SCREEN_PIXEL_SIZE;
 	
-	finalColor = ApplyGridLines(finalColor, float4(0.25, 0.25, 0.25, 1), coord, screenSize, _GridLineInterval.x, 2);
-	finalColor = ApplyGridLines(finalColor, float4(0.45, 0.45, 0.45, 1), coord, screenSize, _GridLineInterval.y, 4);
-	finalColor = ApplyHorizontalLine(finalColor, float4(0.65, 0.65, 0.65, 1), coord, 0.0, 4);
-	finalColor = ApplyVerticalLine(finalColor, float4(0.65, 0.65, 0.65, 1), coord, 0.0, 4);
+	finalColor = ApplyGridLines(finalColor, vec4(0.25, 0.25, 0.25, 1), coord, screenSize, _GridLineInterval.x, 2);
+	finalColor = ApplyGridLines(finalColor, vec4(0.45, 0.45, 0.45, 1), coord, screenSize, _GridLineInterval.y, 4);
+	finalColor = ApplyHorizontalLine(finalColor, vec4(0.65, 0.65, 0.65, 1), coord, 0.0, 4);
+	finalColor = ApplyVerticalLine(finalColor, vec4(0.65, 0.65, 0.65, 1), coord, 0.0, 4);
 	finalColor = AppyFunctionGraphs(finalColor, coord);
 	finalColor.a = 1.0f;
 	COLOR = finalColor;

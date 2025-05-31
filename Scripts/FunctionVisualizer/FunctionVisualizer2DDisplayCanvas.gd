@@ -8,6 +8,11 @@ signal mouse_moved(mousePos : Vector2)
 var m_PrevDragPos : Vector2 = Vector2()
 var m_IsDragging : bool = false
 
+func _enter_tree() -> void:
+	var screenSizeI := DisplayServer.screen_get_size();
+	var screenSizeF := Vector2(screenSizeI.x, screenSizeI.y);
+	size = screenSizeF
+
 # Handle Input
 func _gui_input(event: InputEvent) -> void:
 	if event is InputEventMouseButton:

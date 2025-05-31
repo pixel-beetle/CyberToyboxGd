@@ -20,7 +20,7 @@ var m_ErrorMessageLabel :Label = $HBox/CodeEdit/ErrorLabel
 var m_ColorPickerButton: ColorPickerButton
 var m_CodeEdit: CodeEdit
 var SyntaxHighligherInstance: SyntaxHighlighter
-signal text_changed(textEdit: FunctionInputEdit, index: int, text: String)
+signal fsl_changed(textEdit: FunctionInputEdit, index: int, text: String)
 var m_IsContentValid: bool
 
 var m_HeightBeforeFocus : float
@@ -39,8 +39,8 @@ var Content:
 	get:
 		return m_CurrentGLSLCode
 	set(value):
-		m_CodeEdit.set_text(value)
-		m_CurrentGLSLCode = value
+		m_CodeEdit.set_text(value);
+		ReValidateInput();
 
 var m_FslParser : FslParser = FslParser.new()
 var m_ValidIdentifiers : Array[String] = []
@@ -69,23 +69,26 @@ func _ready():
 	m_CodeEdit.focus_exited.connect(_on_focus_exited)
 	m_CodeEdit.code_completion_requested.connect(_on_code_completion_requested)
 
-func _on_text_changed():
+func ReValidateInput() -> bool:
 	var content                         := m_CodeEdit.text
 	var result : FslParser.ParseContext =  m_FslParser.parse(content, Visualizer.GetValidFunctionNames() , Visualizer.GetValidVariableNames())
 	if result == null or not result.success:
-		print("Error parsing function expression: " + content)
-		print(result.message)
-		m_ErrorMessageLabel.text = result.message
-		MarkContentValid(false)
+		print("Error parsing function expression: " + content);
+		print(result.message);
+		m_ErrorMessageLabel.text = result.message;
+		MarkContentValid(false);
+		return false;
 	else:
 		print("Successfully parsed function expression: " + content)
-		m_CurrentGLSLCode = result.ast.to_glsl()
-		print(m_CurrentGLSLCode)
-		print(JSON.stringify(result.ast))
-		MarkContentValid(true)
-		m_ErrorMessageLabel.text = ""
-		text_changed.emit(self, Index, m_CurrentGLSLCode)
-		
+		m_CurrentGLSLCode = result.ast.to_glsl();
+		print(m_CurrentGLSLCode);
+		MarkContentValid(true);
+		m_ErrorMessageLabel.text = "";
+		return true;
+
+func _on_text_changed():
+	if ReValidateInput():
+		fsl_changed.emit(self, Index, m_CurrentGLSLCode);
 	m_CodeEdit.request_code_completion()
 
 func _on_code_completion_requested():

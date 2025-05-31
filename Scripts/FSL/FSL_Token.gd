@@ -24,6 +24,14 @@ func _init(t: Type, string: String, pos: int):
 func _to_string() -> String:
 	return "[%s: %s]" % [Type.keys()[type], string_value]
 
+static var DefaultIdentifierRemapping : Dictionary = {
+	"lerp" : "mix",
+	"float2" : "vec2",
+	"float3" : "vec3",
+	"float4" : "vec4",
+	"float4x4" : "mat4",
+													 }
+
 func to_glsl() -> String:
 	match type:
 		Type.COMMA:
@@ -37,6 +45,8 @@ func to_glsl() -> String:
 		Type.COLON:
 			return ":"
 		Type.IDENTIFIER:
+			if string_value in DefaultIdentifierRemapping:
+				return DefaultIdentifierRemapping[string_value];
 			return string_value
 		Type.RPAREN:
 			return ")"

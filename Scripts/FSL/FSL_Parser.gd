@@ -55,11 +55,13 @@ class ParseContext:
 # 主解析函数
 func parse(expression: String, valid_functions : Array[String], valid_variables : Array[String]) -> ParseContext:
 	tokens = _tokenize(expression)
+	var state := ParseContext.new();
 	if tokens.size() == 0:
-		return null;
+		state.success = false;
+		state.message = "No Valid Token";
+		return state;
 	position = 0;
 	current_token = tokens[0];
-	var state := ParseContext.new();
 	state.valid_variables = valid_variables;
 	state.valid_functions = valid_functions;
 	state.success = true;
